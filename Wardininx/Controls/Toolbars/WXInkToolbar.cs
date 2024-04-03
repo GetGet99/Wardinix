@@ -144,6 +144,12 @@ class WXInkToolbarUI : WXControl
     {
         base.OnApplyTemplate();
         var gui = (UserControl)GetTemplateChild(App.GUIRootName);
+        var penColorsBinding =
+            Abstracted.EditingModeProperty.ToBinding().WithForwardConverter(
+            x => x is WXInkToolbar.EditingModes.Highlighter ?
+                (Source: Abstracted.FavoriteHighlighterColors, Target: Abstracted.HighlighterColorIndexProperty) :
+                (Source: Abstracted.FavoritePenColors, Target: Abstracted.PenColorIndexProperty)
+            );
         gui.Content =
             new Border
             {
@@ -171,37 +177,39 @@ class WXInkToolbarUI : WXControl
                     },
                     Spacing = 4,
                     Children =
+                    {
+                        new Button() { Content = new SymbolExIcons(SymbolEx.Marker).Build() }.WithCustomCode(x => x.Click += (_, _) => Abstracted.EditingMode = WXInkToolbar.EditingModes.Pen),
+                        new Button() { Content = new SymbolExIcons(SymbolEx.Pencil).Build() }.WithCustomCode(x => x.Click += (_, _) => Abstracted.EditingMode = WXInkToolbar.EditingModes.Pencil),
+                        new Button() { Content = new SymbolExIcons(SymbolEx.Highlight).Build() }.WithCustomCode(x => x.Click += (_, _) => Abstracted.EditingMode = WXInkToolbar.EditingModes.Highlighter),
+                        new Button() { Content = new SymbolExIcons(SymbolEx.StrokeErase).Build() }.WithCustomCode(x => x.Click += (_, _) => Abstracted.EditingMode = WXInkToolbar.EditingModes.Eraser),
+                        //new Button() { Content = "L" }.WithCustomCode(x => x.Click += (_, _) => Abstracted.EditingMode = WXInkToolbar.EditingModes.LassoSelect),
+                        //new Button() { Content = "R" }.WithCustomCode(x => x.Click += (_, _) => Abstracted.EditingMode = WXInkToolbar.EditingModes.RectSelect),
+                        new Button() { Content = new SymbolExIcons(SymbolEx.Undo).Build() }.WithCustomCode(x => x.Click += (_, _) => Abstracted.Parent.UndoManager.Undo())
+                        .WithOneWayBinding(new() {
+                            { IsEnabledProperty.AsPropertyDefinition<Button, bool>(), Abstracted.Parent.UndoManager.IsUndoableProperty }
+                        }),
+                        new Button() { Content = new SymbolExIcons(SymbolEx.Redo).Build() }.WithCustomCode(x => x.Click += (_, _) => Abstracted.Parent.UndoManager.Redo())
+                        .WithOneWayBinding(new() {
+                            { IsEnabledProperty.AsPropertyDefinition<Button, bool>(), Abstracted.Parent.UndoManager.IsRedoableProperty }
+                        }),
+                        new WXContentControl<(ObservableCollection<Color> Source, Property<int> Target)>(penColorsBinding.Value)
                         {
-                            new Button() { Content = new SymbolExIcons(SymbolEx.Marker).Build() }.WithCustomCode(x => x.Click += (_, _) => Abstracted.EditingMode = WXInkToolbar.EditingModes.Pen),
-                            new Button() { Content = new SymbolExIcons(SymbolEx.Pencil).Build() }.WithCustomCode(x => x.Click += (_, _) => Abstracted.EditingMode = WXInkToolbar.EditingModes.Pencil),
-                            new Button() { Content = new SymbolExIcons(SymbolEx.Highlight).Build() }.WithCustomCode(x => x.Click += (_, _) => Abstracted.EditingMode = WXInkToolbar.EditingModes.Highlighter),
-                            new Button() { Content = new SymbolExIcons(SymbolEx.StrokeErase).Build() }.WithCustomCode(x => x.Click += (_, _) => Abstracted.EditingMode = WXInkToolbar.EditingModes.Eraser),
-                            //new Button() { Content = "L" }.WithCustomCode(x => x.Click += (_, _) => Abstracted.EditingMode = WXInkToolbar.EditingModes.LassoSelect),
-                            //new Button() { Content = "R" }.WithCustomCode(x => x.Click += (_, _) => Abstracted.EditingMode = WXInkToolbar.EditingModes.RectSelect),
-                            new Button() { Content = new SymbolExIcons(SymbolEx.Undo).Build() }.WithCustomCode(x => x.Click += (_, _) => Abstracted.Parent.UndoManager.Undo())
-                            .WithOneWayBinding(new() {
-                                { IsEnabledProperty.AsPropertyDefinition<Button, bool>(), Abstracted.Parent.UndoManager.IsUndoableProperty }
-                            }),
-                            new Button() { Content = new SymbolExIcons(SymbolEx.Redo).Build() }.WithCustomCode(x => x.Click += (_, _) => Abstracted.Parent.UndoManager.Redo())
-                            .WithOneWayBinding(new() {
-                                { IsEnabledProperty.AsPropertyDefinition<Button, bool>(), Abstracted.Parent.UndoManager.IsRedoableProperty }
-                            }),
-                            new Border()
-                            .WithCustomCode(x => ((colors, setter) =>
-                            new StackPanel
-                            {
-                                Orientation = Orientation.Horizontal,
-                                Spacing = 4,
-                                Resources =
+                            ContentTemplate = new(root => new WXItemsControlWithIndex<Color>(
+                                new StackPanel
                                 {
-                                    ["ButtonForeground"] = new SolidColorBrush(Colors.Transparent),
-                                    ["ButtonForegroundPointerOver"] = new SolidColorBrush(Colors.Transparent),
-                                    ["ButtonForegroundPressed"] = new SolidColorBrush(Colors.Transparent),
-                                },
-                                Children =
+                                    Orientation = Orientation.Horizontal,
+                                    Spacing = 4,
+                                    Resources =
+                                    {
+                                        ["ButtonForeground"] = new SolidColorBrush(Colors.Transparent),
+                                        ["ButtonForegroundPointerOver"] = new SolidColorBrush(Colors.Transparent),
+                                        ["ButtonForegroundPressed"] = new SolidColorBrush(Colors.Transparent),
+                                    }
+                                }.AssignTo(out var sp), sp.Children
+                                )
                                 {
-                                    CollectionItemsBinding.Create(colors, new DataTemplate<(int Index, Color Value), UIElement>(
-                                        IdxColor => new Button() {
+                                    ItemTemplate = new(IdxColor =>
+                                        new Button() {
                                             Width = 30, Height = 30,
                                             CornerRadius = new(15),
                                             Background = new SolidColorBrush().AssignTo(out var brush),
@@ -217,24 +225,26 @@ class WXInkToolbarUI : WXControl
                                             { PropertyDefinition.CreateExpr<Button, Color>(_ => brush.Color, (_, val) => brush.Color = brush2.Color = brush3.Color = val), IdxColor.WithForwardConverter(x => x.Value) }
                                         })
                                         .WithCustomCode(
-                                            x => x.Click += (_, _) => setter(IdxColor.Value.Index)
+                                            x => x.Click += (_, _) => root.Value.Target.Value = IdxColor.Value.Index
                                         )
-                                    ))
+                                    )
                                 }
-                            }), out Func<ObservableCollection<Color>, Action<int>, StackPanel> panelCreator)
-                            .WithCustomCode(x =>
-                                (penColorEditor: panelCreator(Abstracted.FavoritePenColors, x => Abstracted.PenColorIndexProperty.Value = x),
-                                highlightColorEditor: panelCreator(Abstracted.FavoriteHighlighterColors, x => Abstracted.HighlighterColorIndexProperty.Value = x)),
-                                out var a
-                            )
                             .WithOneWayBinding(new()
                             {
-                                { PropertyDefinition.CreateExpr<Border, UIElement>(x => x.Child, (x, val) => x.Child = val),
-                                    Abstracted.EditingModeProperty.ToBinding().WithForwardConverter(x => (UIElement)(x is WXInkToolbar.EditingModes.Highlighter ? a.highlightColorEditor : a.penColorEditor)) }
+                                {
+                                    WXItemsControlWithIndex<Color>.ItemsSourcePropertyDefinition,
+                                    root.WithForwardConverter(x => x.Source)
+                                }
                             })
+                            )
                         }
+                        .WithOneWayBinding(new()
+                        {
+                            { WXContentControl<(ObservableCollection<Color> Source, Property<int> Target)>.ContentPropertyDefinition, penColorsBinding }
+                        })
+                    }
                 }
-            }
+}
             .WithThemeResources<Border, Color>(x => brush.TintColor = x, "LayerFillColorDefault")
             .WithThemeResources<Border, Color>(x => brush.FallbackColor = x, "SolidBackgroundFillColorBase");
     }
