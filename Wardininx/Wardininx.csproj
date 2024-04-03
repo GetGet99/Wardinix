@@ -129,6 +129,8 @@
     <Compile Include="Controls\FrameworkElementProperties.cs" />
     <Compile Include="Controls\Toolbars\WXInkToolbar.cs" />
     <Compile Include="Controls\Toolbars\WXLayerToolbar.cs" />
+    <Compile Include="Controls\WXItemsControl.cs" />
+    <Compile Include="Controls\WXContentControl.cs" />
     <Compile Include="Controls\WXControl.cs" />
     <Compile Include="Controls\Toolbars\WXToolbar.cs" />
     <Compile Include="Get.Data.UWP.cs" />
