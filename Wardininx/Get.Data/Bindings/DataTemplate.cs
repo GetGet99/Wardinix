@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using Get.Data.Collections;
+using System.Collections.Generic;
 
 namespace Get.Data.Bindings;
 
 public delegate TOut DataTemplateDefinition<TSrc, TOut>(RootBinding<TSrc> dataRoot);
-public class DataTemplateWithIndex<TSrc, TOut>(DataTemplateDefinition<(int Index, TSrc Item), TOut> TemplateDefinition) :
-    DataTemplate<(int Index, TSrc Item), TOut>(TemplateDefinition)
+public class DataTemplateWithIndex<TSrc, TOut>(DataTemplateDefinition<IndexItem<TSrc>, TOut> TemplateDefinition) :
+    DataTemplate<IndexItem<TSrc>, TOut>(TemplateDefinition)
 {
 
 }

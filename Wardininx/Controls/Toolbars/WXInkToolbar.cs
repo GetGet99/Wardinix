@@ -11,6 +11,7 @@ using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media;
 using Wardininx.Classes;
 using Get.Symbols;
+using Get.Data.Collections;
 namespace Wardininx.Controls.Toolbars;
 
 class WXInkToolbar : AbstractedUI
@@ -106,7 +107,7 @@ class WXInkToolbar : AbstractedUI
         LassoSelect,
         RectSelect
     }
-    public ObservableCollection<Color> FavoritePenColors { get; } = [
+    public UpdateCollection<Color> FavoritePenColors { get; } = [
         Colors.Black,
         Colors.White,
         Color.FromArgb(255, 192, 29, 29), // red
@@ -116,9 +117,9 @@ class WXInkToolbar : AbstractedUI
         Color.FromArgb(255, 101, 0, 203), // purple
     ];
     public Property<int> PenColorIndexProperty { get; } = new(default);
-    public ObservableCollection<double> FavoritePenSizes { get; } = [];
+    public UpdateCollection<double> FavoritePenSizes { get; } = [];
     public Property<int> PenSizeIndexProperty { get; } = new(default);
-    public ObservableCollection<Color> FavoriteHighlighterColors { get; } = [
+    public UpdateCollection<Color> FavoriteHighlighterColors { get; } = [
         Color.FromArgb(255, 235, 0, 139), // pink highlight
         Color.FromArgb(255, 255, 85, 0),  // orange highlight
         Color.FromArgb(255, 192, 29, 29), // red
@@ -128,7 +129,7 @@ class WXInkToolbar : AbstractedUI
         Color.FromArgb(255, 102, 0, 204), // purple highlight
     ];
     public Property<int> HighlighterColorIndexProperty { get; } = new(default);
-    public ObservableCollection<double> FavoriteHighlighterSizes { get; } = [];
+    public UpdateCollection<double> FavoriteHighlighterSizes { get; } = [];
     public Property<int> HighlighterSizeIndexProperty { get; } = new(default);
 }
 
@@ -192,9 +193,9 @@ class WXInkToolbarUI : WXControl
                         .WithOneWayBinding(new() {
                             { IsEnabledProperty.AsPropertyDefinition<Button, bool>(), Abstracted.Parent.UndoManager.IsRedoableProperty }
                         }),
-                        new WXContentControl<(ObservableCollection<Color> Source, Property<int> Target)>(penColorsBinding.Value)
+                        new WXContentControl<(UpdateCollection<Color> Source, Property<int> Target)>(penColorsBinding.Value)
                         {
-                            ContentTemplate = new(root => new WXItemsControlWithIndex<Color>(
+                            ContentTemplate = new(root => new WXItemsControl<IndexItem<Color>>(
                                 new StackPanel
                                 {
                                     Orientation = Orientation.Horizontal,
@@ -232,15 +233,15 @@ class WXInkToolbarUI : WXControl
                             .WithOneWayBinding(new()
                             {
                                 {
-                                    WXItemsControlWithIndex<Color>.ItemsSourcePropertyDefinition,
-                                    root.WithForwardConverter(x => x.Source)
+                                    WXItemsControl<IndexItem<Color>>.ItemsSourcePropertyDefinition,
+                                    root.WithForwardConverter(x => (IReadOnlyUpdateCollection<IndexItem<Color>>)x.Source.WithIndex())
                                 }
                             })
                             )
                         }
                         .WithOneWayBinding(new()
                         {
-                            { WXContentControl<(ObservableCollection<Color> Source, Property<int> Target)>.ContentPropertyDefinition, penColorsBinding }
+                            { WXContentControl<(UpdateCollection<Color> Source, Property<int> Target)>.ContentPropertyDefinition, penColorsBinding }
                         })
                     }
                 }

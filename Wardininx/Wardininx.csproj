@@ -137,9 +137,17 @@
     <Compile Include="Get.Data\Bindings\Bindings.cs" />
     <Compile Include="Get.Data\Bindings\CollectionBinder.cs" />
     <Compile Include="Get.Data\Bindings\DataTemplate.cs" />
+    <Compile Include="Get.Data\Collections\CollectionBinderExtension.cs" />
+    <Compile Include="Get.Data\Collections\ConverterCollection.cs" />
+    <Compile Include="Get.Data\Collections\Extension.cs" />
+    <Compile Include="Get.Data\Collections\IndexUpdateCollection.cs" />
+    <Compile Include="Get.Data\Collections\IUpdateCollection.cs" />
+    <Compile Include="Get.Data\Collections\UpdateCollectionProperty.cs" />
+    <Compile Include="Get.Data\Collections\UpdateCollection.cs" />
     <Compile Include="Get.Data\Helper.cs" />
     <Compile Include="Get.Data\ModelLinker\ItemsProcessor.cs" />
     <Compile Include="Get.Data\ModelLinker\ObservableCollectionModelLinker.cs" />
+    <Compile Include="Get.Data\ModelLinker\UpdateCollectionModelLinker.cs" />
     <Compile Include="Get.Data\Properties\AttachedPropertyDefinition.cs" />
     <Compile Include="Get.Data\Properties\PropertyBase.cs" />
     <Compile Include="Get.Data\Properties\PropertyDefinition.cs" />
@@ -190,10 +198,14 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="System.Memory">
+      <Version>4.5.5</Version>
+    </PackageReference>
     <PackageReference Include="Win2D.uwp">
       <Version>1.27.1</Version>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup />
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>

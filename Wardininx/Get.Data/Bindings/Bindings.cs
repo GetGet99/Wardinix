@@ -1,4 +1,5 @@
-﻿using Get.Data.Properties;
+﻿using Get.Data.Collections;
+using Get.Data.Properties;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 
@@ -121,6 +122,142 @@ public abstract class Binding<TOut>
         => Binding<TIn>.Create(pIn).To(pDef);
     public static Binding<TOut> Create(ObservableCollection<TOut> collection, Binding<int> index)
         => new ObservableCollectionBinding<TOut>(collection, index);
+    public static Binding<TOut> Create(IReadOnlyUpdateCollection<TOut> collection, Binding<int> index)
+        => new OneWayUpdateCollectionBinding<TOut>(collection, index);
+    public static Binding<TOut> Create(IUpdateCollection<TOut> collection, Binding<int> index)
+        => new UpdateCollectionBinding<TOut>(collection, index);
+}
+public class UpdateCollectionBinding<TOut>(IUpdateCollection<TOut> collection, Binding<int> index) : Binding<TOut?>
+{
+    TOut value = collection[index.Value];
+    public override TOut? Value { get => value; set => collection[index.Value] = value; }
+    protected override void RegisterValueChangedEvents()
+    {
+        collection.ItemsAdded += Collection_ItemsAddedRemoved;
+        collection.ItemsRemoved += Collection_ItemsAddedRemoved;
+        collection.ItemsReplaced += Collection_ItemsReplaced;
+        collection.ItemsMoved += Collection_ItemsMoved;
+        index.ValueChanged += InvokeIndexChanged;
+    }
+
+
+    private void Collection_ItemsAddedRemoved(int startingIndex, IReadOnlyList<TOut> item)
+    {
+        if (startingIndex >= index.Value) UpdateValue();
+    }
+
+    private void Collection_ItemsReplaced(int i, TOut oldItem, TOut newItem)
+    {
+        if (i == index.Value) UpdateValue();
+    }
+
+    private void Collection_ItemsMoved(int oldIndex, int newIndex, TOut oldIndexItem, TOut newIndexItem)
+    {
+        if (oldIndex == index.Value || newIndex == index.Value) UpdateValue();
+    }
+    void UpdateValue()
+    {
+        var newValue = Get(index.Value);
+        if (!EqualityComparer<TOut>.Default.Equals(newValue, value))
+        {
+            var oldValue = value;
+            InvokeValueChanging(oldValue, newValue);
+            value = newValue;
+            InvokeValueChanged(oldValue, newValue);
+        }
+    }
+
+    protected override void UnregisterValueChangedEvents()
+    {
+        index.ValueChanged -= InvokeIndexChanged;
+    }
+    protected override void RegisterValueChangingEvents()
+    {
+        index.ValueChanging += InvokeIndexChanging;
+    }
+    protected override void UnregisterValueChangingEvents()
+    {
+        index.ValueChanging -= InvokeIndexChanging;
+    }
+    TOut? Get(int index) => index >= collection.Count ? default : collection[index];
+    protected void InvokeIndexChanging(int oldIndex, int newIndex) => InvokeValueChanging(value, Get(newIndex));
+    protected void InvokeIndexChanged(int oldIndex, int newIndex)
+    {
+        var oldValue = value;
+        value = Get(newIndex);
+        InvokeValueChanged(oldValue, value);
+    }
+
+    protected override void RegisterRootChangedEvents() { }
+
+    protected override void UnregisterRootChangedEvents() { }
+
+}
+public class OneWayUpdateCollectionBinding<TOut>(IReadOnlyUpdateCollection<TOut> collection, Binding<int> index) : Binding<TOut?>
+{
+    TOut value = collection[index.Value];
+    public override TOut? Value { get => value; set => throw new InvalidOperationException("Cannot go backwards"); }
+    protected override void RegisterValueChangedEvents()
+    {
+        collection.ItemsAdded += Collection_ItemsAddedRemoved;
+        collection.ItemsRemoved += Collection_ItemsAddedRemoved;
+        collection.ItemsReplaced += Collection_ItemsReplaced;
+        collection.ItemsMoved += Collection_ItemsMoved; ;
+        index.ValueChanged += InvokeIndexChanged;
+    }
+
+
+    private void Collection_ItemsAddedRemoved(int startingIndex, IReadOnlyList<TOut> item)
+    {
+        if (startingIndex >= index.Value) UpdateValue();
+    }
+
+    private void Collection_ItemsReplaced(int i, TOut oldItem, TOut newItem)
+    {
+        if (i == index.Value) UpdateValue();
+    }
+
+    private void Collection_ItemsMoved(int oldIndex, int newIndex, TOut oldIndexItem, TOut newIndexItem)
+    {
+        if (oldIndex == index.Value || newIndex == index.Value) UpdateValue();
+    }
+    void UpdateValue()
+    {
+        var newValue = Get(index.Value);
+        if (!EqualityComparer<TOut>.Default.Equals(newValue, value))
+        {
+            var oldValue = value;
+            InvokeValueChanging(oldValue, newValue);
+            value = newValue;
+            InvokeValueChanged(oldValue, newValue);
+        }
+    }
+
+    protected override void UnregisterValueChangedEvents()
+    {
+        index.ValueChanged -= InvokeIndexChanged;
+    }
+    protected override void RegisterValueChangingEvents()
+    {
+        index.ValueChanging += InvokeIndexChanging;
+    }
+    protected override void UnregisterValueChangingEvents()
+    {
+        index.ValueChanging -= InvokeIndexChanging;
+    }
+    TOut? Get(int index) => index >= collection.Count ? default : collection[index];
+    protected void InvokeIndexChanging(int oldIndex, int newIndex) => InvokeValueChanging(value, Get(newIndex));
+    protected void InvokeIndexChanged(int oldIndex, int newIndex)
+    {
+        var oldValue = value;
+        value = Get(newIndex);
+        InvokeValueChanged(oldValue, value);
+    }
+
+    protected override void RegisterRootChangedEvents() { }
+
+    protected override void UnregisterRootChangedEvents() { }
+
 }
 public class ObservableCollectionBinding<TOut>(ObservableCollection<TOut> collection, Binding<int> index) : Binding<TOut?>
 {

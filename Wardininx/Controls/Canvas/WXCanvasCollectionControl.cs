@@ -10,10 +10,11 @@ using System.Numerics;
 using Get.Data.Properties;
 using Windows.UI.Xaml;
 using Get.Data.Bindings;
+using Get.Data.Collections;
 namespace Wardininx.Controls.Canvas;
 class WXCanvasCollectionControl : WXCanvasControl
 {
-    public ObservableCollection<WXCanvasControl> Children { get; } = [];
+    public UpdateCollection<WXCanvasControl> Children { get; } = [];
     protected override UIElement CreateUI() => new WXCanvasCollectionControlUI(this, CanvasBoundsPropertyProtected);
 }
 partial class WXCanvasCollectionControlUI : WXCanvasControlUI
@@ -41,46 +42,52 @@ partial class WXCanvasCollectionControlUI : WXCanvasControlUI
         var gui = (UserControl)GetTemplateChild(App.GUIRootName);
         gui.Content = new Grid()
         {
-            Children = { CollectionItemsBinding.CreateNonTemplate(Abstracted.Children, x => x.UnsafeGetElement<UIElement>()) },
+            Children = { Abstracted.Children.WithForwardConverter(x => x.UnsafeGetElement<UIElement>()) },
             Background = new SolidColorBrush(Colors.Transparent)
         };
-        var itemsProcessor = new ItemsProccessor<WXCanvasControl>(Abstracted.Children);
-        itemsProcessor.ItemsAdded += x =>
+        Abstracted.Children.ItemsAdded += (_, xs) => OnItemsAdded(xs);
+        void OnItemsAdded(IReadOnlyList<WXCanvasControl> xs)
         {
-            var curBounds = Abstracted.CanvasBounds;
-            curBounds.Union(x.CanvasBounds);
-            CanvasBoundsWriter.Value = curBounds;
-            void ev(Rect oldValue, Rect newValue)
+            foreach (var x in xs)
             {
-                Rect r = default;
-                foreach (var c in Abstracted.Children)
+                var curBounds = Abstracted.CanvasBounds;
+                curBounds.Union(x.CanvasBounds);
+                CanvasBoundsWriter.Value = curBounds;
+                void ev(Rect oldValue, Rect newValue)
                 {
-                    if (r == default) r = c.CanvasBounds;
-                    else r.Union(c.CanvasBounds);
+                    Rect r = default;
+                    foreach (var c in Abstracted.Children)
+                    {
+                        if (r == default) r = c.CanvasBounds;
+                        else r.Union(c.CanvasBounds);
+                    }
+                    CanvasBoundsWriter.Value = r;
                 }
-                CanvasBoundsWriter.Value = r;
+                canvasBoundEventHandlers.Add(x, ev);
+                x.CanvasBoundsProperty.ValueChanged += ev;
             }
-            canvasBoundEventHandlers.Add(x, ev);
-            x.CanvasBoundsProperty.ValueChanged += ev;
-        };
-        itemsProcessor.ItemsRemoved += x =>
+        }
+        Abstracted.Children.ItemsRemoved += (_, xs) =>
         {
-            var curBounds = Abstracted.CanvasBounds;
-            var removedBounds = x.CanvasBounds;
-            if (removedBounds.Top == curBounds.Top ||
-                removedBounds.Bottom == curBounds.Bottom ||
-                removedBounds.Left == curBounds.Left ||
-                removedBounds.Right == curBounds.Right)
+            foreach (var x in xs)
             {
-                Rect r = default;
-                foreach (var c in Abstracted.Children)
+                var curBounds = Abstracted.CanvasBounds;
+                var removedBounds = x.CanvasBounds;
+                if (removedBounds.Top == curBounds.Top ||
+                    removedBounds.Bottom == curBounds.Bottom ||
+                    removedBounds.Left == curBounds.Left ||
+                    removedBounds.Right == curBounds.Right)
                 {
-                    r.Union(c.CanvasBounds);
+                    Rect r = default;
+                    foreach (var c in Abstracted.Children)
+                    {
+                        r.Union(c.CanvasBounds);
+                    }
+                    CanvasBoundsWriter.Value = r;
                 }
-                CanvasBoundsWriter.Value = r;
             }
         };
-        itemsProcessor.Reset();
+        OnItemsAdded(Abstracted.Children.AsReadOnly());
         base.OnApplyTemplate();
     }
 }

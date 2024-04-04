@@ -1,3 +1,4 @@
+using Get.Data.Collections;
 using Get.Data.Helpers;
 using Get.Data.Properties;
 using Get.Data.XACL;
@@ -20,7 +21,7 @@ class WXCanvasController : AbstractedUI
     {
         CanvasBoundsProperty = new(CanvasBoundsPropertyProtected);
     }
-    public ObservableCollection<WXCanvasControl> Layers { get; } = [];
+    public UpdateCollection<WXCanvasControl> Layers { get; } = [];
     protected readonly Property<Rect> CanvasBoundsPropertyProtected = new(default);
     public static PropertyDefinition<WXCanvasControl, Rect> CanvasBoundsPropertyDefinition { get; }
         = new(x => x.CanvasBoundsProperty);

@@ -3,17 +3,17 @@ using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Wardininx.UndoRedos;
 using Wardininx.Controls.Canvas;
-using System.Collections.ObjectModel;
 using Get.Data.Bindings;
 using Get.Data.XACL;
 using Get.Data.Properties;
 using Get.Data.Helpers;
 using Windows.UI.Xaml.Controls.Primitives;
+using Get.Data.Collections;
 namespace Wardininx.Controls.Toolbars;
 
 class WXLayerToolbar : AbstractedUI
 {
-    public ObservableCollection<WXCanvasControl> Layers { get; } = [];
+    public UpdateCollection<WXCanvasControl> Layers { get; } = [];
     public Property<int> SelectedIndexProperty = new(0);
     public int SelectedIndex { get => SelectedIndexProperty.Value; set => SelectedIndexProperty.Value = value; }
 
@@ -42,9 +42,10 @@ class WXLayerToolbarUI : WXControl
             VerticalAlignment = VerticalAlignment.Center,
             Children =
             {
+                //new WXItemsControlWithIndex<>
                 new StackPanel { 
                     Children = {
-                        CollectionItemsBinding.Create(Abstracted.Layers,
+                        CollectionItemsBinding.Create(Abstracted.Layers.WithIndex(),
                             new DataTemplateWithIndex<WXCanvasControl, UIElement>(
                             root => new ToggleButton
                             {

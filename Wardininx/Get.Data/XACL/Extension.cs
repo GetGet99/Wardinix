@@ -1,4 +1,5 @@
 ﻿using Get.Data.Bindings;
+using Get.Data.Collections;
 using Get.Data.Properties;
 using System.Collections;
 using System.Collections.ObjectModel;
@@ -9,48 +10,43 @@ using Windows.UI.Xaml.Controls.Primitives;
 
 namespace Get.Data.XACL;
 interface ICollectionItemsBinding<TTarget> { }
-public record class CollectionItemsBindingWithIndex<TSrc, TTarget>(ObservableCollection<TSrc> Source, DataTemplate<(int Index, TSrc Value), TTarget> DataTemplate) : ICollectionItemsBinding<TTarget>
+public record class CollectionItemsBinding<TSrc, TTarget>(IReadOnlyUpdateCollection<TSrc> Source, DataTemplate<TSrc, TTarget> DataTemplate) : ICollectionItemsBinding<TTarget>
 {
 
 }
-public record class CollectionItemsBinding<TSrc, TTarget>(ObservableCollection<TSrc> Source, DataTemplate<TSrc, TTarget> DataTemplate) : ICollectionItemsBinding<TTarget>
-{
-
-}
-public record class CollectionItemsBinding<T>(ObservableCollection<T> Source)
+public record class CollectionItemsBinding<T>(IReadOnlyUpdateCollection<T> Source)
 {
     
 }
-public record class CollectionItemsBindingNonTemplate<TSrc, TTarget>(ObservableCollection<TSrc> Source, Func<TSrc, TTarget> ConvertFunc);
 public static class CollectionItemsBinding
 {
-    public static CollectionItemsBinding<T> Create<T>(ObservableCollection<T> Source) => new(Source);
-    public static CollectionItemsBinding<TSrc, TTarget> Create<TSrc, TTarget>(ObservableCollection<TSrc> Source, DataTemplate<TSrc, TTarget> DataTemplate) => new(Source, DataTemplate);
-    public static CollectionItemsBindingWithIndex<TSrc, TTarget> Create<TSrc, TTarget>(ObservableCollection<TSrc> Source, DataTemplate<(int Index, TSrc Value), TTarget> DataTemplate) => new(Source, DataTemplate);
-    public static CollectionItemsBindingNonTemplate<TSrc, TTarget> CreateNonTemplate<TSrc, TTarget>(ObservableCollection<TSrc> Source, Func<TSrc, TTarget> convertFunc) => new(Source, convertFunc);
+    public static CollectionItemsBinding<T> Create<T>(IReadOnlyUpdateCollection<T> Source) => new(Source);
+    public static CollectionItemsBinding<T> Create<T>(IUpdateCollection<T> Source) => new(Source.AsReadOnly());
+    public static CollectionItemsBinding<TSrc, TTarget> Create<TSrc, TTarget>(IReadOnlyUpdateCollection<TSrc> Source, DataTemplate<TSrc, TTarget> DataTemplate) => new(Source, DataTemplate);
+    public static CollectionItemsBinding<TSrc, TTarget> Create<TSrc, TTarget>(IUpdateCollection<TSrc> Source, DataTemplate<TSrc, TTarget> DataTemplate)
+        => Create(Source.AsReadOnly(), DataTemplate);
 }
 public static class XACLExtension
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Add<TSrc, T>(this IList<T> collection, CollectionItemsBinding<TSrc, T> toBind)
     {
-        CollectionBinder.Bind(toBind.Source, collection, toBind.DataTemplate);
-    }
-    public static void Add<TSrc, T>(this IList<T> collection, CollectionItemsBindingWithIndex<TSrc, T> toBind)
-    {
-        CollectionBinder.Bind(toBind.Source, collection, toBind.DataTemplate);
-    }
-    public static void Add<T, TTarget>(this IList<TTarget> collection, CollectionItemsBinding<T> toBind) where T : TTarget
-    {
-        CollectionBinder.BindCast(toBind.Source, collection);
-    }
-    public static void Add<TSrc, T>(this IList<T> collection, CollectionItemsBindingNonTemplate<TSrc, T> toBind)
-    {
-        CollectionBinder.Bind(toBind.Source, collection, toBind.ConvertFunc);
+        toBind.Source.Bind(collection, toBind.DataTemplate);
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Add<TSrc, TTarget>(this IList<TTarget> collection, ObservableCollection<TSrc> source, DataTemplate<TSrc, TTarget> dataTemplate)
+    public static void Add<T, TTarget>(this IList<TTarget> collection, CollectionItemsBinding<T> toBind) where T : TTarget
     {
-        CollectionBinder.Bind(source, collection, dataTemplate);
+        toBind.Source.WithForwardConverter(x => (TTarget)x).Bind(collection);
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Add<TSrc, TTarget>(this IList<TTarget> collection, IReadOnlyUpdateCollection<TSrc> source, DataTemplate<TSrc, TTarget> dataTemplate)
+    {
+        source.Bind(collection, dataTemplate);
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Add<T>(this IList<T> collection, IReadOnlyUpdateCollection<T> source)
+    {
+        source.Bind(collection);
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TSrc WithBinding<TSrc>(this TSrc src, XACLBindings<TSrc> Binding)
