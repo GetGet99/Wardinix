@@ -56,10 +56,13 @@ partial class WXCanvasCollectionControlUI : WXCanvasControlUI
                 void ev(Rect oldValue, Rect newValue)
                 {
                     Rect r = default;
+                    if (Abstracted.Children.Count > 1)
+                    {
+                        r = Abstracted.Children[0].CanvasBounds;
+                    }
                     foreach (var c in Abstracted.Children)
                     {
-                        if (r == default) r = c.CanvasBounds;
-                        else r.Union(c.CanvasBounds);
+                        if (c.CanvasBounds != default) r.Union(c.CanvasBounds);
                     }
                     CanvasBoundsWriter.Value = r;
                 }
@@ -79,9 +82,13 @@ partial class WXCanvasCollectionControlUI : WXCanvasControlUI
                     removedBounds.Right == curBounds.Right)
                 {
                     Rect r = default;
+                    if (Abstracted.Children.Count > 1)
+                    {
+                        r = Abstracted.Children[0].CanvasBounds;
+                    }
                     foreach (var c in Abstracted.Children)
                     {
-                        r.Union(c.CanvasBounds);
+                        if (c.CanvasBounds != default) r.Union(c.CanvasBounds);
                     }
                     CanvasBoundsWriter.Value = r;
                 }
