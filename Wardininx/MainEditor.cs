@@ -26,13 +26,6 @@ class MainEditor : UserControl
         WXInkCanvas CreateInkCanvas()
         {
             WXInkCanvas inkCanvas = new WXInkCanvas(UndoManager);
-            inkCanvas.InkPresenter.InputDeviceTypes = Windows.UI.Core.CoreInputDeviceTypes.Mouse;
-            inkCanvas.InkPresenter.UpdateDefaultDrawingAttributes(new()
-            {
-                Color = Colors.White,
-                Size = new(6, 6)
-            });
-            inkCanvas.InkPresenter.IsInputEnabled = true;
             return inkCanvas;
         }
         var MicaBrush = new BlurredWallpaperMaterials.BackdropMaterial
@@ -42,6 +35,10 @@ class MainEditor : UserControl
         };
         ActualThemeChanged += (_1, _2) => MicaBrush.Theme = ActualTheme;
         UpdateCollection<WXCanvasControl> Layers = [CreateInkCanvas(), CreateInkCanvas(), CreateInkCanvas()];
+        Layers.ItemsAdded += delegate
+        {
+            var a = Layers;
+        };
         Content = new Grid
         {
             Background = MicaBrush,
@@ -49,7 +46,7 @@ class MainEditor : UserControl
             {
                 new WXCanvasController { Layers = Layers.AsReadOnly() }.UnsafeGetElement<UIElement>(),
                 new WXToolbar(UndoManager) {
-                    LayerToolbar = { Layers = Layers.AsReadOnly(), SelectedIndex = 0 }
+                    LayerToolbar = { Layers = Layers, SelectedIndex = 0 }
                 }.UnsafeGetElement<UIElement>()
             }
         };

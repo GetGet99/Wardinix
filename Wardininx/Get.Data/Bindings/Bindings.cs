@@ -133,7 +133,7 @@ public abstract class Binding<TOut>
 }
 public class UpdateCollectionBinding<TOut>(IUpdateCollection<TOut> collection, Binding<int> index) : Binding<TOut?>
 {
-    TOut value = collection[index.CurrentValue];
+    TOut value = index.CurrentValue < 0 || index.CurrentValue >= collection.Count ? default : collection[index.CurrentValue];
     public override TOut? CurrentValue { get => value; set => collection[index.CurrentValue] = value; }
     protected override void RegisterValueChangedEvents()
     {
@@ -183,7 +183,7 @@ public class UpdateCollectionBinding<TOut>(IUpdateCollection<TOut> collection, B
     {
         index.ValueChanging -= InvokeIndexChanging;
     }
-    TOut? Get(int index) => index >= collection.Count ? default : collection[index];
+    TOut? Get(int index) => index < 0 || index >= collection.Count ? default : collection[index];
     protected void InvokeIndexChanging(int oldIndex, int newIndex) => InvokeValueChanging(value, Get(newIndex));
     protected void InvokeIndexChanged(int oldIndex, int newIndex)
     {

@@ -10,11 +10,12 @@ class WXToolbar : AbstractedUI
 {
     public UndoManager UndoManager { get; }
     public WXInkToolbar InkToolbar { get; }
-    public WXLayerToolbar LayerToolbar { get; } = new();
+    public WXLayerToolbar LayerToolbar { get; }
     public WXToolbar(UndoManager undoManager)
     {
         UndoManager = undoManager;
         InkToolbar = new(this);
+        LayerToolbar = new(this);
         InkToolbar.InkControllerProperty.Bind(
             Binding<WXCanvasControl>.Create(LayerToolbar.LayersProperty, LayerToolbar.SelectedIndexProperty)
             .WithForwardConverter(x => (x as WXInkCanvas)?.InkController),

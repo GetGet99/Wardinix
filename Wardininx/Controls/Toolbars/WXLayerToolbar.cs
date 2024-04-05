@@ -11,17 +11,21 @@ using Windows.UI.Xaml.Controls.Primitives;
 using Get.Data.Collections;
 using Windows.UI.ViewManagement;
 using Windows.UI.Xaml.Media;
+using Get.Symbols;
+using Windows.UI;
 namespace Wardininx.Controls.Toolbars;
 
 class WXLayerToolbar : AbstractedUI
 {
-    public OneWayUpdateCollectionProperty<WXCanvasControl> LayersProperty { get; } = [];
-    public IReadOnlyUpdateCollection<WXCanvasControl> Layers { get => LayersProperty.Value; set => LayersProperty.Value = value; }
+    public TwoWayUpdateCollectionProperty<WXCanvasControl> LayersProperty { get; } = [];
+    public IUpdateCollection<WXCanvasControl> Layers { get => LayersProperty.Value; set => LayersProperty.Value = value; }
     public Property<int> SelectedIndexProperty { get; } = new(-1);
     public int SelectedIndex { get => SelectedIndexProperty.Value; set => SelectedIndexProperty.Value = value; }
     public Property<WXCanvasControl?> SelectedLayerProperty { get; } = new(null);
-    public WXLayerToolbar()
+    public WXToolbar Parent { get; }
+    public WXLayerToolbar(WXToolbar toolbar)
     {
+        Parent = toolbar;
         SelectedLayerProperty.ValueChanged += (old, @new) =>
         {
             if (old is not null)
@@ -53,25 +57,29 @@ class WXLayerToolbarUI : WXControl
         var gui = (UserControl)GetTemplateChild(App.GUIRootName);
         gui.Content = new StackPanel
         {
+            Orientation = Orientation.Vertical,
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center,
+            Spacing = 4,
+            Margin = new(16),
+            Padding = new(8),
+            CornerRadius = new(4),
+            Background = new AcrylicBrush()
+            {
+                TintOpacity = 0.6
+            }.AssignTo(out var brush),
             Children =
             {
                 new WXSelectableItemsControl<WXCanvasControl>(
-                    new StackPanel { Orientation = Orientation.Vertical, Spacing = 4,
-                    Margin = new(16),
-                    Padding = new(8),
-                    CornerRadius = new(4),
+                    new StackPanel {
+                    Orientation = Orientation.Vertical,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Bottom,
-                    Background = new AcrylicBrush()
-                    {
-                        TintOpacity = 0.6
-                    }
+                    Spacing = 4,
                 }.AssignTo(out var sp), sp.Children
                 )
                 {
-                    ItemsSource = Abstracted.LayersProperty,
+                    ItemsSource = Abstracted.LayersProperty.AsReadOnly(),
                     ItemTemplate = new(
                         root => new Button
                         {
@@ -84,12 +92,12 @@ class WXLayerToolbarUI : WXControl
                                 {
                                     {
                                         ContentControl.ContentProperty.AsPropertyDefinition<Button, object>(),
-                                        root.To(x => x.IndexItemBinding).WithForwardConverter(x => (object)x.Index)
+                                        root.To(x => x.IndexItemBinding).WithForwardConverter(x => (object)(x.Index + 1))
                                     }
                                 }
                             }
                         ).WithCustomCode(x =>
-                        { 
+                        {
                             x.Click += (_, _) => root.CurrentValue.Select();
 
                             var defaultBorderBrush = (Brush)x.Resources["ButtonBorderBrush"];
@@ -118,7 +126,21 @@ class WXLayerToolbarUI : WXControl
                 {
                     { WXSelectableItemsControl<WXCanvasControl>.SelectedValuePropertyDefnition, Abstracted.SelectedLayerProperty }
                 }),
+                new Button()
+                {
+                    Content = new SymbolExIcons(SymbolEx.Add).Build(),
+                    Width = 35,
+                    Height = 35,
+                    Padding = new(5)
+                }.WithCustomCode(x => x.Click += delegate
+                {
+                    Abstracted.LayersProperty.Add(new WXInkCanvas(Abstracted.Parent.UndoManager));
+                    Abstracted.SelectedIndex = Abstracted.LayersProperty.Count - 1;
+                })
             }
         };
+        this
+        .WithThemeResources<FrameworkElement, Color>(x => brush.TintColor = x, "LayerFillColorDefault")
+        .WithThemeResources<FrameworkElement, Color>(x => brush.FallbackColor = x, "SolidBackgroundFillColorBase");
     }
 }

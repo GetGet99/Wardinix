@@ -10,6 +10,7 @@ using Windows.UI.Composition;
 using Windows.UI.Input.Inking;
 using Windows.UI.Input.Inking.Core;
 using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Hosting;
 using Windows.UI.Xaml.Media;
 
@@ -21,6 +22,8 @@ partial class WXInkCanvas : WXCanvasControl
     public WXInkCanvas(UndoManager undoManager)
     {
         InkController = new(undoManager, InkPresenter);
+        InkPresenter.InputDeviceTypes = Windows.UI.Core.CoreInputDeviceTypes.Mouse | Windows.UI.Core.CoreInputDeviceTypes.Touch | Windows.UI.Core.CoreInputDeviceTypes.Pen;
+        InkPresenter.IsInputEnabled = true;
     }
     
     public const float RealCanvasSize = 1 << 20;
