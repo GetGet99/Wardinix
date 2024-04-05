@@ -23,24 +23,24 @@ public abstract class PropertyBase<T>
         switch (bindingMode)
         {
             case BindingModes.OneTime:
-                Value = currentBinding.Value;
+                Value = currentBinding.CurrentValue;
                 currentBinding.RootChanged += BindingRootChanged;
                 break;
             case BindingModes.OneWayToTarget:
-                Value = currentBinding.Value;
+                Value = currentBinding.CurrentValue;
                 currentBinding.ValueChanged += SourceBindingValueChanged;
                 break;
             case BindingModes.OneWayToSource:
-                currentBinding.Value = Value;
+                currentBinding.CurrentValue = Value;
                 ValueChanged += ValueChangedToSourceBinding;
                 break;
             case BindingModes.TwoWayUpdateSourceImmediete:
-                currentBinding.Value = Value;
+                currentBinding.CurrentValue = Value;
                 ValueChanged += ValueChangedToSourceBinding;
                 currentBinding.ValueChanged += SourceBindingValueChanged;
                 break;
             case BindingModes.TwoWayUpdateTargetImmediete:
-                Value = currentBinding.Value;
+                Value = currentBinding.CurrentValue;
                 ValueChanged += ValueChangedToSourceBinding;
                 currentBinding.ValueChanged += SourceBindingValueChanged;
                 break;
@@ -50,7 +50,7 @@ public abstract class PropertyBase<T>
     private void BindingRootChanged()
     {
         if (currentBinding != null)
-            Value = currentBinding.Value;
+            Value = currentBinding.CurrentValue;
     }
 
     void SourceBindingValueChanged(T oldVal, T newVal)
@@ -60,7 +60,7 @@ public abstract class PropertyBase<T>
     void ValueChangedToSourceBinding(T oldVal, T newVal)
     {
         if (currentBinding != null)
-            currentBinding.Value = newVal;
+            currentBinding.CurrentValue = newVal;
     }
     public static implicit operator Binding<T>(PropertyBase<T> prop) => prop.ToBinding();
 }

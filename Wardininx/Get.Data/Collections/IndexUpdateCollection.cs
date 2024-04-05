@@ -18,16 +18,16 @@ class IndexReadOnlyUpdateCollection<T>(IReadOnlyUpdateCollection<T> src) : Colle
 
     protected override void RegisterItemsAddedEvent() => src.ItemsAdded += Src_ItemsAdded;
     protected override void UnregisterItemsAddedEvent() => src.ItemsAdded -= Src_ItemsAdded;
-    readonly struct PartialList(IReadOnlyList<T> original, int offset, int length) : IReadOnlyList<IndexItem<T>>
+    readonly struct IndexWrapList(IReadOnlyList<T> original, int startingIndex) : IReadOnlyList<IndexItem<T>>
     {
         // Bad Security, negative index
-        public IndexItem<T> this[int index] => new(index, original[index + offset]);
+        public IndexItem<T> this[int index] => new(startingIndex + index, original[index]);
 
-        public int Count => length;
+        public int Count => original.Count;
 
         public IEnumerator<IndexItem<T>> GetEnumerator()
         {
-            for (int i = offset; i < original.Count; i++)
+            for (int i = 0; i < original.Count; i++)
                 yield return new(i, original[i]);
         }
 
@@ -36,7 +36,7 @@ class IndexReadOnlyUpdateCollection<T>(IReadOnlyUpdateCollection<T> src) : Colle
     private void Src_ItemsAdded(int startingIndex, IReadOnlyList<T> item)
     {
         int itemsAdded = item.Count;
-        InvokeItemsAdded(startingIndex, new PartialList(item, 0, item.Count));
+        InvokeItemsAdded(startingIndex, new IndexWrapList(item, startingIndex));
         // Sends update to everything else above that
         for (int i = startingIndex + item.Count - 1; i < src.Count; i++)
         {
@@ -50,7 +50,7 @@ class IndexReadOnlyUpdateCollection<T>(IReadOnlyUpdateCollection<T> src) : Colle
     private void Src_ItemsRemoved(int startingIndex, IReadOnlyList<T> item)
     {
         int itemsRemoved = item.Count;
-        InvokeItemsRemoved(startingIndex, new PartialList(item, 0, item.Count));
+        InvokeItemsRemoved(startingIndex, new IndexWrapList(item, startingIndex));
         // Sends update to everything else above that
         for (int i = startingIndex; i < src.Count; i++)
         {

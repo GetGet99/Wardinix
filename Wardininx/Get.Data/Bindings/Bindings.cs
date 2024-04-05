@@ -6,7 +6,7 @@ using System.Collections.Specialized;
 namespace Get.Data.Bindings;
 public abstract class Binding<TOut>
 {
-    public abstract TOut Value { get; set; }
+    public abstract TOut CurrentValue { get; set; }
     Action? _RootChanged;
     ValueChangingHandler<TOut>? _ValueChanging;
     ValueChangedHandler<TOut>? _ValueChanged;
@@ -93,7 +93,9 @@ public abstract class Binding<TOut>
     protected abstract void UnregisterValueChangingEvents();
     protected abstract void UnregisterValueChangedEvents();
     public Binding<TNewOut> To<TNewOut>(PropertyDefinitionBase<TOut, TNewOut> pDef)
-        => new PathBinding<TOut, TNewOut>(this, pDef);
+        => new PathPropertyBinding<TOut, TNewOut>(this, pDef);
+    public Binding<TNewOut> To<TNewOut>(Func<TOut, Binding<TNewOut>> nextBinding)
+        => new PathBinding<TOut, TNewOut>(this, nextBinding);
     public Binding<TNewOut> WithForwardConverter<TNewOut>(ForwardConverter<TOut, TNewOut> converter)
         => new ConvertBinding<TOut, TNewOut>(this, converter, (_, _) => throw new InvalidOperationException("This converter only supports forward binding"));
     public Binding<TNewOut> WithBackwardConverter<TNewOut>(AdvancedBackwardConverter<TOut, TNewOut> converter)
@@ -106,6 +108,8 @@ public abstract class Binding<TOut>
         => new ConvertBinding<TOut, TNewOut>(this, forwardConverter, backwardConverter);
     public Binding<TOut> AllowWritebackWhen(Func<bool> func)
         => WithConverter(x => x, (TOut output, TOut oldInput) => func() ? output : oldInput);
+    public Binding<TOut> AllowWritebackWhen(Func<TOut, bool> func)
+        => WithConverter(x => x, (TOut output, TOut oldInput) => func(output) ? output : oldInput);
     public Binding<TNewOut> Combine<TIn, TNewOut>(Binding<TIn> binding2, ForwardConverter<TOut, TIn, TNewOut> forwardConverter, AdvancedBackwardConverter<TOut, TIn, TNewOut> backwardConverter)
         => new ConvertBinding<TOut, TIn, TNewOut>(this, binding2, forwardConverter, backwardConverter);
     public Binding<TNewOut> Combine<TIn, TNewOut>(Binding<TIn> binding2, ForwardConverter<TOut, TIn, TNewOut> forwardConverter)
@@ -129,8 +133,8 @@ public abstract class Binding<TOut>
 }
 public class UpdateCollectionBinding<TOut>(IUpdateCollection<TOut> collection, Binding<int> index) : Binding<TOut?>
 {
-    TOut value = collection[index.Value];
-    public override TOut? Value { get => value; set => collection[index.Value] = value; }
+    TOut value = collection[index.CurrentValue];
+    public override TOut? CurrentValue { get => value; set => collection[index.CurrentValue] = value; }
     protected override void RegisterValueChangedEvents()
     {
         collection.ItemsAdded += Collection_ItemsAddedRemoved;
@@ -143,21 +147,21 @@ public class UpdateCollectionBinding<TOut>(IUpdateCollection<TOut> collection, B
 
     private void Collection_ItemsAddedRemoved(int startingIndex, IReadOnlyList<TOut> item)
     {
-        if (startingIndex >= index.Value) UpdateValue();
+        if (startingIndex >= index.CurrentValue) UpdateValue();
     }
 
     private void Collection_ItemsReplaced(int i, TOut oldItem, TOut newItem)
     {
-        if (i == index.Value) UpdateValue();
+        if (i == index.CurrentValue) UpdateValue();
     }
 
     private void Collection_ItemsMoved(int oldIndex, int newIndex, TOut oldIndexItem, TOut newIndexItem)
     {
-        if (oldIndex == index.Value || newIndex == index.Value) UpdateValue();
+        if (oldIndex == index.CurrentValue || newIndex == index.CurrentValue) UpdateValue();
     }
     void UpdateValue()
     {
-        var newValue = Get(index.Value);
+        var newValue = Get(index.CurrentValue);
         if (!EqualityComparer<TOut>.Default.Equals(newValue, value))
         {
             var oldValue = value;
@@ -195,8 +199,8 @@ public class UpdateCollectionBinding<TOut>(IUpdateCollection<TOut> collection, B
 }
 public class OneWayUpdateCollectionBinding<TOut>(IReadOnlyUpdateCollection<TOut> collection, Binding<int> index) : Binding<TOut?>
 {
-    TOut value = collection[index.Value];
-    public override TOut? Value { get => value; set => throw new InvalidOperationException("Cannot go backwards"); }
+    TOut? value = index.CurrentValue >= 0 ? collection[index.CurrentValue] : default;
+    public override TOut? CurrentValue { get => value; set => throw new InvalidOperationException("Cannot go backwards"); }
     protected override void RegisterValueChangedEvents()
     {
         collection.ItemsAdded += Collection_ItemsAddedRemoved;
@@ -209,21 +213,21 @@ public class OneWayUpdateCollectionBinding<TOut>(IReadOnlyUpdateCollection<TOut>
 
     private void Collection_ItemsAddedRemoved(int startingIndex, IReadOnlyList<TOut> item)
     {
-        if (startingIndex >= index.Value) UpdateValue();
+        if (startingIndex >= index.CurrentValue) UpdateValue();
     }
 
     private void Collection_ItemsReplaced(int i, TOut oldItem, TOut newItem)
     {
-        if (i == index.Value) UpdateValue();
+        if (i == index.CurrentValue) UpdateValue();
     }
 
     private void Collection_ItemsMoved(int oldIndex, int newIndex, TOut oldIndexItem, TOut newIndexItem)
     {
-        if (oldIndex == index.Value || newIndex == index.Value) UpdateValue();
+        if (oldIndex == index.CurrentValue || newIndex == index.CurrentValue) UpdateValue();
     }
     void UpdateValue()
     {
-        var newValue = Get(index.Value);
+        var newValue = Get(index.CurrentValue);
         if (!EqualityComparer<TOut>.Default.Equals(newValue, value))
         {
             var oldValue = value;
@@ -245,7 +249,7 @@ public class OneWayUpdateCollectionBinding<TOut>(IReadOnlyUpdateCollection<TOut>
     {
         index.ValueChanging -= InvokeIndexChanging;
     }
-    TOut? Get(int index) => index >= collection.Count ? default : collection[index];
+    TOut? Get(int index) => index >= collection.Count || index < 0 ? default : collection[index];
     protected void InvokeIndexChanging(int oldIndex, int newIndex) => InvokeValueChanging(value, Get(newIndex));
     protected void InvokeIndexChanged(int oldIndex, int newIndex)
     {
@@ -261,8 +265,8 @@ public class OneWayUpdateCollectionBinding<TOut>(IReadOnlyUpdateCollection<TOut>
 }
 public class ObservableCollectionBinding<TOut>(ObservableCollection<TOut> collection, Binding<int> index) : Binding<TOut?>
 {
-    TOut value = collection[index.Value];
-    public override TOut? Value { get => value; set => collection[index.Value] = value; }
+    TOut value = collection[index.CurrentValue];
+    public override TOut? CurrentValue { get => value; set => collection[index.CurrentValue] = value; }
     protected override void RegisterValueChangedEvents()
     {
         collection.CollectionChanged += CollectionChanged;
@@ -271,7 +275,7 @@ public class ObservableCollectionBinding<TOut>(ObservableCollection<TOut> collec
 
     private void CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
     {
-        var newValue = Get(index.Value);
+        var newValue = Get(index.CurrentValue);
         if (!EqualityComparer<TOut>.Default.Equals(newValue, value))
         {
             var oldValue = value;
@@ -310,10 +314,10 @@ public class ObservableCollectionBinding<TOut>(ObservableCollection<TOut> collec
 public class ObservableCollectionBindingWithIndex<TOut>(ObservableCollection<TOut> collection, Binding<int> index) : Binding<(TOut? Item, int Index)>
 {
     (TOut, int) value;
-    public override (TOut? Item, int Index) Value { get => value; set
+    public override (TOut? Item, int Index) CurrentValue { get => value; set
         {
-            if (value.Index != index.Value) throw new InvalidOperationException();
-            collection[index.Value] = value.Item;
+            if (value.Index != index.CurrentValue) throw new InvalidOperationException();
+            collection[index.CurrentValue] = value.Item;
         }
     }
     protected override void RegisterValueChangedEvents()
@@ -324,7 +328,7 @@ public class ObservableCollectionBindingWithIndex<TOut>(ObservableCollection<TOu
 
     private void CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
     {
-        var newValue = Get(index.Value);
+        var newValue = Get(index.CurrentValue);
         if (!EqualityComparer<TOut>.Default.Equals(newValue.Item1, value.Item1))
         {
             var oldValue = value;
@@ -363,7 +367,7 @@ public class ObservableCollectionBindingWithIndex<TOut>(ObservableCollection<TOu
 public class PropertyBinding<TOut>(PropertyBase<TOut> pOut) : Binding<TOut>
 {
 
-    public override TOut Value { get => pOut.Value; set => pOut.Value = value; }
+    public override TOut CurrentValue { get => pOut.Value; set => pOut.Value = value; }
     protected override void RegisterValueChangedEvents()
     {
         pOut.ValueChanged += InvokeValueChanged;
@@ -405,7 +409,7 @@ public class ValuePathBinding<TOwner, TOut>(TOwner initialOwner, PropertyDefinit
         }
     }
     PropertyBase<TOut> currentProperty = pDef.GetProperty(initialOwner);
-    public override TOut Value { get => currentProperty.Value; set => currentProperty.Value = value; }
+    public override TOut CurrentValue { get => currentProperty.Value; set => currentProperty.Value = value; }
     protected override void RegisterValueChangedEvents()
     {
         currentProperty.ValueChanged += InvokeValueChanged;
@@ -443,7 +447,7 @@ public class ValueBinding<TOut>(TOut initialOwner) : Binding<TOut>
             RegisterValueChangedEventsIfNeeded();
         }
     }
-    public override TOut Value { get => Data; set => Data = value; }
+    public override TOut CurrentValue { get => Data; set => Data = value; }
     protected override void RegisterValueChangedEvents()
     {
 
@@ -471,7 +475,7 @@ class ConvertBinding<TIn, TOut>(Binding<TIn> inBinding, ForwardConverter<TIn, TO
 {
     public ConvertBinding(Binding<TIn> inBinding, ForwardConverter<TIn, TOut> converter, BackwardConverter<TIn, TOut> backwardConverter)
         : this(inBinding, converter, (x, _) => backwardConverter(x)) { }
-    TIn owner = inBinding.Value;
+    TIn owner = inBinding.CurrentValue;
     void SetData(TIn value)
     {
         if (EqualityComparer<TIn>.Default.Equals(owner, value))
@@ -487,12 +491,12 @@ class ConvertBinding<TIn, TOut>(Binding<TIn> inBinding, ForwardConverter<TIn, TO
         RegisterValueChangingEventsIfNeeded();
         RegisterValueChangedEventsIfNeeded();
     }
-    TOut _value = converter(inBinding.Value);
-    public override TOut Value { get => _value; set => inBinding.Value = backwardConverter(value, owner); }
+    TOut _value = converter(inBinding.CurrentValue);
+    public override TOut CurrentValue { get => _value; set => inBinding.CurrentValue = backwardConverter(value, owner); }
     protected override void RegisterValueChangedEvents()
     {
         inBinding.ValueChanged += InitialOwner_ValueChanged;
-        SetData(inBinding.Value);
+        SetData(inBinding.CurrentValue);
     }
 
     private void InitialOwner_ValueChanged(TIn oldValue, TIn newValue)
@@ -525,8 +529,8 @@ public delegate void AdvancedBackwardConverter<TIn1, TIn2, TOut>(TOut output, re
 public delegate TOut ForwardConverter<TIn1, TIn2, TIn3, TOut>(TIn1 input1, TIn2 input2, TIn3 input3);
 class ConvertBinding<TIn1, TIn2, TOut>(Binding<TIn1> inBinding1, Binding<TIn2> inBinding2, ForwardConverter<TIn1, TIn2, TOut> converter, AdvancedBackwardConverter<TIn1, TIn2, TOut> backwardConverter) : Binding<TOut>
 {
-    TIn1 owner1 = inBinding1.Value;
-    TIn2 owner2 = inBinding2.Value;
+    TIn1 owner1 = inBinding1.CurrentValue;
+    TIn2 owner2 = inBinding2.CurrentValue;
     void SetData(TIn1 value1, TIn2 value2)
     {
         if (EqualityComparer<TIn1>.Default.Equals(owner1, value1) && EqualityComparer<TIn2>.Default.Equals(owner2, value2))
@@ -543,23 +547,25 @@ class ConvertBinding<TIn1, TIn2, TOut>(Binding<TIn1> inBinding1, Binding<TIn2> i
         RegisterValueChangingEventsIfNeeded();
         RegisterValueChangedEventsIfNeeded();
     }
-    TOut _value = converter(inBinding1.Value, inBinding2.Value);
-    public override TOut Value {
+    TOut _value = converter(inBinding1.CurrentValue, inBinding2.CurrentValue);
+    public override TOut CurrentValue {
         get => _value;
         set
         {
             var val1 = owner1;
             var val2 = owner2;
             backwardConverter(value, ref val1, ref val2);
-            inBinding1.Value = val1;
-            inBinding2.Value = val2;
+            if (!EqualityComparer<TIn1>.Default.Equals(val1, inBinding1.CurrentValue))
+                inBinding1.CurrentValue = val1;
+            if (!EqualityComparer<TIn2>.Default.Equals(val2, inBinding2.CurrentValue))
+                inBinding2.CurrentValue = val2;
         }
     }
     protected override void RegisterValueChangedEvents()
     {
         inBinding1.ValueChanged += InitialOwner_ValueChanged1;
         inBinding2.ValueChanged += InitialOwner_ValueChanged2;
-        SetData(inBinding1.Value, inBinding2.Value);
+        SetData(inBinding1.CurrentValue, inBinding2.CurrentValue);
     }
 
     private void InitialOwner_ValueChanged1(TIn1 oldValue, TIn1 newValue)
@@ -594,9 +600,9 @@ class ConvertBinding<TIn1, TIn2, TOut>(Binding<TIn1> inBinding1, Binding<TIn2> i
         inBinding2.RootChanged -= InvokeRootChanged;
     }
 }
-class PathBinding<TOwner, TOut>(Binding<TOwner> bindingOwner, PropertyDefinitionBase<TOwner, TOut> pDef) : Binding<TOut>
+class PathPropertyBinding<TOwner, TOut>(Binding<TOwner> bindingOwner, PropertyDefinitionBase<TOwner, TOut> pDef) : Binding<TOut>
 {
-    TOwner owner = bindingOwner.Value;
+    TOwner owner = bindingOwner.CurrentValue;
     void SetData(TOwner value)
     {
         if (EqualityComparer<TOwner>.Default.Equals(owner, value))
@@ -608,13 +614,13 @@ class PathBinding<TOwner, TOut>(Binding<TOwner> bindingOwner, PropertyDefinition
         RegisterValueChangingEventsIfNeeded();
         RegisterValueChangedEventsIfNeeded();
     }
-    PropertyBase<TOut> currentProperty = pDef.GetProperty(bindingOwner.Value);
-    public override TOut Value { get => currentProperty.Value; set => currentProperty.Value = value; }
+    PropertyBase<TOut> currentProperty = pDef.GetProperty(bindingOwner.CurrentValue);
+    public override TOut CurrentValue { get => currentProperty.Value; set => currentProperty.Value = value; }
     protected override void RegisterValueChangedEvents()
     {
         currentProperty.ValueChanged += InvokeValueChanged;
         bindingOwner.ValueChanged += InitialOwner_ValueChanged;
-        SetData(bindingOwner.Value);
+        SetData(bindingOwner.CurrentValue);
     }
 
     private void InitialOwner_ValueChanged(TOwner oldValue, TOwner newValue)
@@ -645,9 +651,67 @@ class PathBinding<TOwner, TOut>(Binding<TOwner> bindingOwner, PropertyDefinition
         bindingOwner.RootChanged -= InvokeRootChanged;
     }
 }
-public class RootBinding<TOut>(Binding<TOut> parentBindingInit) : Binding<TOut>
+class PathBinding<TOwner, TOut>(Binding<TOwner> bindingOwner, Func<TOwner, Binding<TOut>> pDef) : Binding<TOut>
 {
-    Binding<TOut> parentBinding = parentBindingInit;
+    TOwner owner = bindingOwner.CurrentValue;
+    void SetData(TOwner value)
+    {
+        if (EqualityComparer<TOwner>.Default.Equals(owner, value))
+            return;
+        UnregisterValueChangingEvents();
+        UnregisterValueChangedEvents();
+        owner = value;
+        currentBinding = pDef(value);
+        RegisterValueChangingEventsIfNeeded();
+        RegisterValueChangedEventsIfNeeded();
+    }
+    Binding<TOut> currentBinding = pDef(bindingOwner.CurrentValue);
+    public override TOut CurrentValue { get => currentBinding.CurrentValue; set => currentBinding.CurrentValue = value; }
+    protected override void RegisterValueChangedEvents()
+    {
+        currentBinding.ValueChanged += InvokeValueChanged;
+        bindingOwner.ValueChanged += InitialOwner_ValueChanged;
+        SetData(bindingOwner.CurrentValue);
+    }
+
+    private void InitialOwner_ValueChanged(TOwner oldValue, TOwner newValue)
+    {
+        SetData(newValue);
+    }
+
+    protected override void UnregisterValueChangedEvents()
+    {
+        currentBinding.ValueChanged -= InvokeValueChanged;
+        bindingOwner.ValueChanged -= InitialOwner_ValueChanged;
+    }
+    protected override void RegisterValueChangingEvents()
+    {
+        currentBinding.ValueChanging += InvokeValueChanging;
+    }
+    protected override void UnregisterValueChangingEvents()
+    {
+        currentBinding.ValueChanging -= InvokeValueChanging;
+    }
+    protected override void RegisterRootChangedEvents()
+    {
+        bindingOwner.RootChanged += InvokeRootChanged;
+    }
+
+    protected override void UnregisterRootChangedEvents()
+    {
+        bindingOwner.RootChanged -= InvokeRootChanged;
+    }
+}
+public class RootBinding<TOut> : Binding<TOut>
+{
+    public RootBinding(Binding<TOut> parentBindingInit)
+    {
+        owner = parentBindingInit.CurrentValue;
+        // set to property to run the property registration code
+        ParentBinding = parentBinding = parentBindingInit;
+        SetData(ParentBinding.CurrentValue);
+    }
+    Binding<TOut> parentBinding;
     public Binding<TOut> ParentBinding
     {
         get => parentBinding;
@@ -655,13 +719,15 @@ public class RootBinding<TOut>(Binding<TOut> parentBindingInit) : Binding<TOut>
         {
             UnregisterValueChangingEvents();
             UnregisterValueChangedEvents();
+            parentBinding.ValueChanged -= ParentBinding_ValueChanged;
             parentBinding = value;
-            SetData(value.Value);
+            SetData(value.CurrentValue);
+            value.ValueChanged += ParentBinding_ValueChanged;
             RegisterValueChangingEventsIfNeeded();
             RegisterValueChangedEventsIfNeeded();
         }
     }
-    TOut owner = parentBindingInit.Value;
+    TOut owner;
     void SetData(TOut value)
     {
         if (EqualityComparer<TOut>.Default.Equals(owner, value))
@@ -676,11 +742,9 @@ public class RootBinding<TOut>(Binding<TOut> parentBindingInit) : Binding<TOut>
         RegisterValueChangingEventsIfNeeded();
         RegisterValueChangedEventsIfNeeded();
     }
-    public override TOut Value { get => owner; set => throw new InvalidOperationException("You cannot set value of data root"); }
+    public override TOut CurrentValue { get => owner; set => throw new InvalidOperationException("You cannot set value of data root"); }
     protected override void RegisterValueChangedEvents()
     {
-        ParentBinding.ValueChanged += ParentBinding_ValueChanged;
-        SetData(ParentBinding.Value);
     }
 
     private void ParentBinding_ValueChanged(TOut oldValue, TOut newValue)
@@ -690,7 +754,6 @@ public class RootBinding<TOut>(Binding<TOut> parentBindingInit) : Binding<TOut>
 
     protected override void UnregisterValueChangedEvents()
     {
-        ParentBinding.ValueChanged -= ParentBinding_ValueChanged;
     }
     protected override void RegisterValueChangingEvents()
     {

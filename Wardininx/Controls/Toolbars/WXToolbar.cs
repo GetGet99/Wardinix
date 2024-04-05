@@ -2,16 +2,24 @@
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Wardininx.UndoRedos;
+using Get.Data.Bindings;
+using Wardininx.Controls.Canvas;
 namespace Wardininx.Controls.Toolbars;
 
 class WXToolbar : AbstractedUI
 {
     public UndoManager UndoManager { get; }
     public WXInkToolbar InkToolbar { get; }
+    public WXLayerToolbar LayerToolbar { get; } = new();
     public WXToolbar(UndoManager undoManager)
     {
         UndoManager = undoManager;
         InkToolbar = new(this);
+        InkToolbar.InkControllerProperty.Bind(
+            Binding<WXCanvasControl>.Create(LayerToolbar.LayersProperty, LayerToolbar.SelectedIndexProperty)
+            .WithForwardConverter(x => (x as WXInkCanvas)?.InkController),
+            BindingModes.OneWay
+        );
     }
     protected override UIElement CreateUI() => new WXToolbarUI(this);
 }
@@ -32,7 +40,8 @@ class WXToolbarUI : WXControl
         {
             Children =
             {
-                Abstracted.InkToolbar.UnsafeGetElement<UIElement>()
+                Abstracted.InkToolbar.UnsafeGetElement<UIElement>(),
+                Abstracted.LayerToolbar.UnsafeGetElement<UIElement>()
             }
         };
     }

@@ -1,3 +1,5 @@
+using Get.Data.Bindings;
+using Get.Data.Collections;
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Drawing;
@@ -18,32 +20,36 @@ namespace Wardininx;
 
 class MainEditor : UserControl
 {
-    WXInkCanvas inkCanvas;
     UndoManager UndoManager { get; } = new();
     public MainEditor()
     {
-        inkCanvas = new WXInkCanvas(UndoManager);
-        inkCanvas.InkPresenter.InputDeviceTypes = Windows.UI.Core.CoreInputDeviceTypes.Mouse;
-        inkCanvas.InkPresenter.UpdateDefaultDrawingAttributes(new()
+        WXInkCanvas CreateInkCanvas()
         {
-            Color = Colors.White,
-            Size = new(6, 6)
-        });
-        inkCanvas.InkPresenter.IsInputEnabled = true;
+            WXInkCanvas inkCanvas = new WXInkCanvas(UndoManager);
+            inkCanvas.InkPresenter.InputDeviceTypes = Windows.UI.Core.CoreInputDeviceTypes.Mouse;
+            inkCanvas.InkPresenter.UpdateDefaultDrawingAttributes(new()
+            {
+                Color = Colors.White,
+                Size = new(6, 6)
+            });
+            inkCanvas.InkPresenter.IsInputEnabled = true;
+            return inkCanvas;
+        }
         var MicaBrush = new BlurredWallpaperMaterials.BackdropMaterial
         {
             Kind = (int)BlurredWallpaperMaterials.BackdropKind.Base,
             Theme = ActualTheme
         };
         ActualThemeChanged += (_1, _2) => MicaBrush.Theme = ActualTheme;
+        UpdateCollection<WXCanvasControl> Layers = [CreateInkCanvas(), CreateInkCanvas(), CreateInkCanvas()];
         Content = new Grid
         {
             Background = MicaBrush,
             Children =
             {
-                new WXCanvasController { Layers = { inkCanvas } }.UnsafeGetElement<UIElement>(),
+                new WXCanvasController { Layers = Layers.AsReadOnly() }.UnsafeGetElement<UIElement>(),
                 new WXToolbar(UndoManager) {
-                    InkToolbar = { InkController = inkCanvas.InkController }
+                    LayerToolbar = { Layers = Layers.AsReadOnly(), SelectedIndex = 0 }
                 }.UnsafeGetElement<UIElement>()
             }
         };

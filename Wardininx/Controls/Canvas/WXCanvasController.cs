@@ -21,7 +21,8 @@ class WXCanvasController : AbstractedUI
     {
         CanvasBoundsProperty = new(CanvasBoundsPropertyProtected);
     }
-    public UpdateCollection<WXCanvasControl> Layers { get; } = [];
+    public OneWayUpdateCollectionProperty<WXCanvasControl> LayersProperty { get; } = [];
+    public IReadOnlyUpdateCollection<WXCanvasControl> Layers { get => LayersProperty.Value; set => LayersProperty.Value = value; }
     protected readonly Property<Rect> CanvasBoundsPropertyProtected = new(default);
     public static PropertyDefinition<WXCanvasControl, Rect> CanvasBoundsPropertyDefinition { get; }
         = new(x => x.CanvasBoundsProperty);
@@ -98,7 +99,7 @@ partial class WXCanvasControllerUI : Control
             {
                 new WXCanvasCollectionControl()
                 {
-                    Children = { CollectionItemsBinding.Create(Abstracted.Layers) }
+                    Children = { CollectionItemsBinding.Create(Abstracted.LayersProperty) }
                 }
                 .WithBinding(new()
                 {
@@ -193,8 +194,8 @@ partial class WXCanvasControllerUI : Control
                     {
                         PropertyDefinition.CreateExpr<InteractionTracker, float>(
                             it => it.Scale, (it, val) => {
-                                var viewport = actualSizeBinding.Value * it.Scale;
-                                it.TryUpdateScale(val, viewOffsetBinding.Value + new Vector3(viewport.X, viewport.Y, 0));
+                                var viewport = actualSizeBinding.CurrentValue * it.Scale;
+                                it.TryUpdateScale(val, viewOffsetBinding.CurrentValue + new Vector3(viewport.X, viewport.Y, 0));
                             }, () => !x.IsInertiaOrInteracting
                         ),
                         scaleBinding
@@ -220,10 +221,10 @@ partial class WXCanvasControllerUI : Control
             var pos = Abstracted.CanvasScrollOffsetProperty.Value;
             if (pointerProp.IsHorizontalMouseWheel || e.KeyModifiers.HasFlag(Windows.System.VirtualKeyModifiers.Shift))
             {
-                pos = pos with { X = pos.X - pointerProp.MouseWheelDelta * scaleBinding.Value };
+                pos = pos with { X = pos.X - pointerProp.MouseWheelDelta * scaleBinding.CurrentValue };
             }
             else
-                pos = pos with { Y = pos.Y - pointerProp.MouseWheelDelta * scaleBinding.Value };
+                pos = pos with { Y = pos.Y - pointerProp.MouseWheelDelta * scaleBinding.CurrentValue };
             Abstracted.CanvasScrollOffsetProperty.Value = pos;
         });
         base.OnApplyTemplate();

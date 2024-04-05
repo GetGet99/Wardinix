@@ -65,6 +65,11 @@ partial class WXInkCanvasUI : WXCanvasControlUI
         Abstracted.CanvasScrollOffsetProperty.ValueChanged += (_, x) => InfiniteVisual.Offset = x;
         InfiniteVisual.Offset = Abstracted.CanvasScrollOffset;
         Abstracted.CanvasScaleProperty.ValueChanged += (_, x) => InfiniteVisual.Scale = x;
+        Abstracted.IsSelectedProperty.ValueChanged += (_, @new) =>
+        {
+            RootVisual.IsHitTestVisible = @new;
+        };
+        RootVisual.IsHitTestVisible = Abstracted.IsSelected;
     }
     readonly Compositor Compositor;
     readonly ContainerVisual InkVisual;

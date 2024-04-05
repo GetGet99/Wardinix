@@ -3,6 +3,7 @@ using Get.XAMLTools;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Windows.Foundation;
+using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 
 namespace Wardininx.Controls.Canvas;
@@ -10,6 +11,8 @@ abstract class WXCanvasControl : AbstractedUI {
     public WXCanvasControl()
     {
         CanvasBoundsProperty = new(CanvasBoundsPropertyProtected);
+        IsSelectedProperty.ValueChanged += (_, @new) => UnsafeGetElement<UIElement>().IsHitTestVisible = @new;
+        IsSelected = false;
     }
     protected readonly Property<Rect> CanvasBoundsPropertyProtected = new(default);
     public static PropertyDefinition<WXCanvasControl, Rect> CanvasBoundsPropertyDefinition { get; }
@@ -42,6 +45,8 @@ abstract class WXCanvasControl : AbstractedUI {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => CanvasScrollOffsetProperty.Value = value;
     }
+    public Property<bool> IsSelectedProperty { get; } = new(default);
+    public bool IsSelected { get => IsSelectedProperty.Value; set => IsSelectedProperty.Value = value; }
 }
 abstract partial class WXCanvasControlUI : WXControl
 {
