@@ -13,11 +13,8 @@ class ElementInteractionTracker : IInteractionTrackerOwner
     {
         var visual = ElementCompositionPreview.GetElementVisual(element);
         InteractionTracker = InteractionTracker.CreateWithOwner(visual.Compositor, this);
-        //InteractionTracker.MinPosition = new Vector3(0, 0, 0);
-        //InteractionTracker.MaxPosition = new Vector3(WXInkCanvas.RealCanvasSize, WXInkCanvas.RealCanvasSize, 0);
-        //InteractionTracker.TryUpdatePosition(new(WXInkCanvas.RealCanvasSize / 2, WXInkCanvas.RealCanvasSize / 2, 0));
-        //InteractionTracker.MinScale = 0.5f;
-        //InteractionTracker.MaxScale = 3f;
+        InteractionTracker.MinScale = 0.5f;
+        InteractionTracker.MaxScale = 3f;
 
         InteractionTracker.InteractionSources.Add(
             ScrollPresenterVisualInteractionSource = VisualInteractionSource.Create(visual)
@@ -32,7 +29,7 @@ class ElementInteractionTracker : IInteractionTrackerOwner
 
         ScrollPresenterVisualInteractionSource.PositionXChainingMode =
             ScrollPresenterVisualInteractionSource.ScaleChainingMode =
-            InteractionChainingMode.Auto;
+            InteractionChainingMode.Always;
 
         ScrollPresenterVisualInteractionSource.PositionXSourceMode =
             ScrollPresenterVisualInteractionSource.PositionYSourceMode =

@@ -22,7 +22,7 @@ partial class WXInkCanvas : WXCanvasControl
     public WXInkCanvas(UndoManager undoManager)
     {
         InkController = new(undoManager, InkPresenter);
-        InkPresenter.InputDeviceTypes = Windows.UI.Core.CoreInputDeviceTypes.Mouse | Windows.UI.Core.CoreInputDeviceTypes.Touch | Windows.UI.Core.CoreInputDeviceTypes.Pen;
+        InkPresenter.InputDeviceTypes = Windows.UI.Core.CoreInputDeviceTypes.Mouse | Windows.UI.Core.CoreInputDeviceTypes.Pen; //  | Windows.UI.Core.CoreInputDeviceTypes.Touch 
         InkPresenter.IsInputEnabled = true;
     }
     
@@ -53,16 +53,23 @@ partial class WXInkCanvasUI : WXCanvasControlUI
         ElementCompositionPreview.SetElementChildVisual(this, RootVisual);
         RootVisual.Clip = Compositor.CreateInsetClip(0, 0, 0, 0);
         RootVisual.RelativeSizeAdjustment = Vector2.One;
+        OffsetVisual = Compositor.CreateContainerVisual();
+        OffsetVisual.Size = new(WXInkCanvas.RealCanvasSize, WXInkCanvas.RealCanvasSize);
+        OffsetVisual.Offset = new(-WXInkCanvas.RealCanvasSize / 2, -WXInkCanvas.RealCanvasSize / 2, 0);
+        RootVisual.Children.InsertAtTop(OffsetVisual);
         InfiniteVisual = Compositor.CreateContainerVisual();
-        RootVisual.Children.InsertAtTop(InfiniteVisual);
+        OffsetVisual.Children.InsertAtTop(InfiniteVisual);
         InfiniteVisual.Size = new(WXInkCanvas.RealCanvasSize, WXInkCanvas.RealCanvasSize);
         InfiniteVisual.Offset = default;
-        InkVisual = Compositor.CreateContainerVisual();
-        InfiniteVisual.Children.InsertAtTop(InkVisual);
         CoreInkPresenterHost.RootVisual = InfiniteVisual;
         Abstracted.InkPresenter.StrokesCollected += (_, _) => UpdateBounds();
         Abstracted.InkPresenter.StrokesErased += (_, _) => UpdateBounds();
-        void UpdateBounds() => CanvasBoundsWriter.Value = Abstracted.InkPresenter.StrokeContainer.BoundingRect;
+        void UpdateBounds() {
+            var rect = Abstracted.InkPresenter.StrokeContainer.BoundingRect;
+            rect.X -= WXInkCanvas.RealCanvasSize / 2;
+            rect.Y -= WXInkCanvas.RealCanvasSize / 2;
+            CanvasBoundsWriter.Value = rect;
+        }
         // Property Binding
         InfiniteVisual.Offset = Abstracted.CanvasScrollOffset;
         Abstracted.CanvasScrollOffsetProperty.ValueChanged += (_, x) => InfiniteVisual.Offset = x;
@@ -75,8 +82,8 @@ partial class WXInkCanvasUI : WXCanvasControlUI
         RootVisual.IsHitTestVisible = Abstracted.IsSelected;
     }
     readonly Compositor Compositor;
-    readonly ContainerVisual InkVisual;
     readonly ContainerVisual InfiniteVisual;
+    readonly ContainerVisual OffsetVisual;
     readonly ContainerVisual RootVisual;
     readonly Visual RealRootVisual;
 }
