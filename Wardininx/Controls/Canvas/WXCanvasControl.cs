@@ -1,5 +1,4 @@
 using Get.Data.Properties;
-using Get.XAMLTools;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Windows.Foundation;

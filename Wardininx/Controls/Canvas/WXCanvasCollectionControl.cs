@@ -3,7 +3,6 @@ using Windows.UI.Xaml.Controls;
 using Get.Data.XACL;
 using Windows.UI.Xaml.Media;
 using Windows.UI;
-using Get.XAMLTools;
 using Windows.Foundation;
 using Get.Data.ModelLinker;
 using System.Numerics;
