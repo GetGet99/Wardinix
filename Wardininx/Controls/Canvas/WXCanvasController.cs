@@ -83,7 +83,7 @@ partial class WXCanvasControllerUI : Control
         var actualSizeBinding = ActualSizeProperty.ToBinding();
         var viewOffsetBinding = Abstracted.CanvasScrollOffsetProperty.ToBinding();
         var scaleBinding = Abstracted.CanvasScaleProperty.ToBinding();
-        var actualVirtualSizeBinding = actualSizeBinding.Combine(scaleBinding, (x, y) => x / y);
+        var actualVirtualSizeBinding = actualSizeBinding.Combine(scaleBinding, (x, y) => x); // x / y
         var visibleRectRegionBinding =
             boundsBinding
             .WithForwardConverter(x => x.Width == 0 && x.Height == 0 ? new Rect(-0.5, -0.5, 1, 1) : x)
@@ -168,22 +168,22 @@ partial class WXCanvasControllerUI : Control
             },
             Background = new SolidColorBrush(Colors.Transparent)
         }
-        .WithCustomCode(x => new ElementInteractionTracker(x) { InteractionTracker = { MinScale = 1f, MaxScale = 1f } }
+        .WithCustomCode(x => new ElementInteractionTracker(x) { InteractionTracker = { MinPosition = new(-WXInkCanvas.RealCanvasSize / 2, -WXInkCanvas.RealCanvasSize / 2, 0), MaxPosition = new(WXInkCanvas.RealCanvasSize / 2, WXInkCanvas.RealCanvasSize / 2, 0) } }
             .WithCustomCode(x =>
                 x.InteractionTracker.WithOneWayBinding(new()
                 {
-                    {
-                        PropertyDefinition.CreateExpr<InteractionTracker, Vector3>(
-                            it => it.MinPosition, (it, val) => it.MinPosition = val
-                        ),
-                        visibleRectRegionBinding.WithForwardConverter(x => new Vector3((float)x.Left, (float)x.Top, 0))
-                    },
-                    {
-                        PropertyDefinition.CreateExpr<InteractionTracker, Vector3>(
-                            it => it.MaxPosition, (it, val) => it.MaxPosition = val
-                        ),
-                        visibleRectRegionBinding.WithForwardConverter(x => new Vector3((float)x.Right, (float)x.Bottom, 0))
-                    },
+                    //{
+                    //    PropertyDefinition.CreateExpr<InteractionTracker, Vector3>(
+                    //        it => it.MinPosition, (it, val) => it.MinPosition = val
+                    //    ),
+                    //    visibleRectRegionBinding.WithForwardConverter(x => new Vector3((float)x.Left, (float)x.Top, 0))
+                    //},
+                    //{
+                    //    PropertyDefinition.CreateExpr<InteractionTracker, Vector3>(
+                    //        it => it.MaxPosition, (it, val) => it.MaxPosition = val
+                    //    ),
+                    //    visibleRectRegionBinding.WithForwardConverter(x => new Vector3((float)x.Right, (float)x.Bottom, 0))
+                    //},
                     {
                         PropertyDefinition.CreateExpr<InteractionTracker, Vector3>(
                             it => it.Position, (it, val) => it.TryUpdatePosition(val),
@@ -217,18 +217,18 @@ partial class WXCanvasControllerUI : Control
         .WithCustomCode(x => x.PointerWheelChanged += (_, e) =>
         {
             // TODO: Setup Animations
-            //if (interactionTracker.IsInertiaOrInteracting) return;
-            //var pointerProp = e.GetCurrentPoint(x).Properties;
-            //var pos = Abstracted.CanvasScrollOffsetProperty.Value;
-            //if (pointerProp.IsHorizontalMouseWheel || e.KeyModifiers.HasFlag(Windows.System.VirtualKeyModifiers.Shift))
-            //{
-            //    pos = pos with { X = pos.X - pointerProp.MouseWheelDelta * scaleBinding.CurrentValue };
-            //}
-            //else
-            //    pos = pos with { Y = pos.Y - pointerProp.MouseWheelDelta * scaleBinding.CurrentValue };
+            if (interactionTracker.IsInertiaOrInteracting) return;
+            var pointerProp = e.GetCurrentPoint(x).Properties;
+            var pos = Abstracted.CanvasScrollOffsetProperty.Value;
+            if (pointerProp.IsHorizontalMouseWheel || e.KeyModifiers.HasFlag(Windows.System.VirtualKeyModifiers.Shift))
+            {
+                pos = pos with { X = pos.X - pointerProp.MouseWheelDelta * scaleBinding.CurrentValue };
+            }
+            else
+                pos = pos with { Y = pos.Y - pointerProp.MouseWheelDelta * scaleBinding.CurrentValue };
             //pos.X = (float)Math.Clamp(pos.X, visibleRectRegionBinding.CurrentValue.Left, visibleRectRegionBinding.CurrentValue.Right);
             //pos.Y = (float)Math.Clamp(pos.Y, visibleRectRegionBinding.CurrentValue.Top, visibleRectRegionBinding.CurrentValue.Bottom);
-            //Abstracted.CanvasScrollOffsetProperty.Value = pos;
+            Abstracted.CanvasScrollOffsetProperty.Value = pos;
         });
         base.OnApplyTemplate();
     }
