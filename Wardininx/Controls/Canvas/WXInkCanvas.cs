@@ -53,12 +53,16 @@ partial class WXInkCanvasUI : WXCanvasControlUI
         ElementCompositionPreview.SetElementChildVisual(this, RootVisual);
         RootVisual.Clip = Compositor.CreateInsetClip(0, 0, 0, 0);
         RootVisual.RelativeSizeAdjustment = Vector2.One;
-        OffsetVisual = Compositor.CreateContainerVisual();
-        OffsetVisual.Size = new(WXInkCanvas.RealCanvasSize, WXInkCanvas.RealCanvasSize);
-        OffsetVisual.Offset = new(-WXInkCanvas.RealCanvasSize / 2, -WXInkCanvas.RealCanvasSize / 2, 0);
-        RootVisual.Children.InsertAtTop(OffsetVisual);
+        UserOffsetVisual = Compositor.CreateContainerVisual();
+        UserOffsetVisual.Size = new(WXInkCanvas.RealCanvasSize, WXInkCanvas.RealCanvasSize);
+        UserOffsetVisual.Offset = default;
+        RootVisual.Children.InsertAtTop(UserOffsetVisual);
+        InternalOffsetVisual = Compositor.CreateContainerVisual();
+        InternalOffsetVisual.Size = new(WXInkCanvas.RealCanvasSize, WXInkCanvas.RealCanvasSize);
+        InternalOffsetVisual.Offset = new(-WXInkCanvas.RealCanvasSize / 2, -WXInkCanvas.RealCanvasSize / 2, 0);
+        UserOffsetVisual.Children.InsertAtTop(InternalOffsetVisual);
         InfiniteVisual = Compositor.CreateContainerVisual();
-        OffsetVisual.Children.InsertAtTop(InfiniteVisual);
+        InternalOffsetVisual.Children.InsertAtTop(InfiniteVisual);
         InfiniteVisual.Size = new(WXInkCanvas.RealCanvasSize, WXInkCanvas.RealCanvasSize);
         InfiniteVisual.Offset = default;
         CoreInkPresenterHost.RootVisual = InfiniteVisual;
@@ -72,9 +76,9 @@ partial class WXInkCanvasUI : WXCanvasControlUI
         }
         // Property Binding
         InfiniteVisual.Offset = Abstracted.CanvasScrollOffset;
-        Abstracted.CanvasScrollOffsetProperty.ValueChanged += (_, x) => InfiniteVisual.Offset = x;
+        Abstracted.CanvasScrollOffsetProperty.ValueChanged += (_, x) => UserOffsetVisual.Offset = x;
         InfiniteVisual.Offset = Abstracted.CanvasScrollOffset;
-        Abstracted.CanvasScaleProperty.ValueChanged += (_, x) => InfiniteVisual.Scale = x;
+        Abstracted.CanvasScaleProperty.ValueChanged += (_, x) => UserOffsetVisual.Scale = x;
         Abstracted.IsSelectedProperty.ValueChanged += (_, @new) =>
         {
             RootVisual.IsHitTestVisible = @new;
@@ -83,7 +87,7 @@ partial class WXInkCanvasUI : WXCanvasControlUI
     }
     readonly Compositor Compositor;
     readonly ContainerVisual InfiniteVisual;
-    readonly ContainerVisual OffsetVisual;
+    readonly ContainerVisual UserOffsetVisual, InternalOffsetVisual;
     readonly ContainerVisual RootVisual;
     readonly Visual RealRootVisual;
 }
