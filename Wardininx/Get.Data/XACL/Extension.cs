@@ -1,50 +1,67 @@
 ﻿using Get.Data.Bindings;
 using Get.Data.Collections;
+using Get.Data.Collections.Conversion;
+using Get.Data.Collections.Linq;
+using Get.Data.Collections;
+using Get.Data.Collections.Update;
 using Get.Data.Properties;
 using System.Collections;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Wardininx;
-using Windows.UI.Xaml.Controls.Primitives;
 
 namespace Get.Data.XACL;
 interface ICollectionItemsBinding<TTarget> { }
-public record class CollectionItemsBinding<TSrc, TTarget>(IReadOnlyUpdateCollection<TSrc> Source, DataTemplate<TSrc, TTarget> DataTemplate) : ICollectionItemsBinding<TTarget>
+public record class CollectionItemsBinding<TSrc, TTarget>(IUpdateReadOnlyCollection<TSrc> Source, DataTemplate<TSrc, TTarget> DataTemplate) : ICollectionItemsBinding<TTarget>
 {
 
 }
-public record class CollectionItemsBinding<T>(IReadOnlyUpdateCollection<T> Source)
+public record class CollectionItemsBinding<T>(IUpdateReadOnlyCollection<T> Source)
 {
     
 }
 public static class CollectionItemsBinding
 {
-    public static CollectionItemsBinding<T> Create<T>(IReadOnlyUpdateCollection<T> Source) => new(Source);
-    public static CollectionItemsBinding<T> Create<T>(IUpdateCollection<T> Source) => new(Source.AsReadOnly());
-    public static CollectionItemsBinding<TSrc, TTarget> Create<TSrc, TTarget>(IReadOnlyUpdateCollection<TSrc> Source, DataTemplate<TSrc, TTarget> DataTemplate) => new(Source, DataTemplate);
-    public static CollectionItemsBinding<TSrc, TTarget> Create<TSrc, TTarget>(IUpdateCollection<TSrc> Source, DataTemplate<TSrc, TTarget> DataTemplate)
-        => Create(Source.AsReadOnly(), DataTemplate);
+    public static CollectionItemsBinding<T> Create<T>(IUpdateReadOnlyCollection<T> Source) => new(Source);
+    public static CollectionItemsBinding<TSrc, TTarget> Create<TSrc, TTarget>(IUpdateReadOnlyCollection<TSrc> Source, DataTemplate<TSrc, TTarget> DataTemplate) => new(Source, DataTemplate);
 }
 public static class XACLExtension
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Add<TSrc, T>(this IList<T> collection, CollectionItemsBinding<TSrc, T> toBind)
     {
-        toBind.Source.Bind(collection, toBind.DataTemplate);
+        toBind.Source.Bind(collection.AsGDCollection(), toBind.DataTemplate);
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Add<T, TTarget>(this IList<TTarget> collection, CollectionItemsBinding<T> toBind) where T : TTarget
     {
-        toBind.Source.WithForwardConverter(x => (TTarget)x).Bind(collection);
+        toBind.Source.Select(x => (TTarget)x).Bind(collection.AsGDCollection());
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Add<TSrc, TTarget>(this IList<TTarget> collection, IReadOnlyUpdateCollection<TSrc> source, DataTemplate<TSrc, TTarget> dataTemplate)
+    public static void Add<TSrc, TTarget>(this IList<TTarget> collection, IUpdateReadOnlyCollection<TSrc> source, DataTemplate<TSrc, TTarget> dataTemplate)
+    {
+        source.Bind(collection.AsGDCollection(), dataTemplate);
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Add<T>(this IList<T> collection, IUpdateReadOnlyCollection<T> source)
+    {
+        source.Bind(collection.AsGDCollection());
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Add<TSrc, T>(this IGDCollection<T> collection, CollectionItemsBinding<TSrc, T> toBind)
+    {
+        toBind.Source.Bind(collection, toBind.DataTemplate);
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Add<T, TTarget>(this IGDCollection<TTarget> collection, CollectionItemsBinding<T> toBind) where T : TTarget
+    {
+        toBind.Source.Select(x => (TTarget)x).Bind(collection);
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Add<TSrc, TTarget>(this IGDCollection<TTarget> collection, IUpdateReadOnlyCollection<TSrc> source, DataTemplate<TSrc, TTarget> dataTemplate)
     {
         source.Bind(collection, dataTemplate);
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Add<T>(this IList<T> collection, IReadOnlyUpdateCollection<T> source)
+    public static void Add<T>(this IGDCollection<T> collection, IUpdateReadOnlyCollection<T> source)
     {
         source.Bind(collection);
     }

@@ -22,7 +22,7 @@
     <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
     <PackageCertificateThumbprint>E76C0C201FB99E4B5157870F1B405BB8887C7A31</PackageCertificateThumbprint>
     <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
-    <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
+    <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
     <GenerateTestArtifacts>True</GenerateTestArtifacts>
     <AppxBundle>Always</AppxBundle>
     <AppxBundlePlatforms>x86|x64|arm</AppxBundlePlatforms>
@@ -145,15 +145,58 @@
     <Compile Include="Get.Data\Bindings\Bindings.cs" />
     <Compile Include="Get.Data\Bindings\CollectionBinder.cs" />
     <Compile Include="Get.Data\Bindings\DataTemplate.cs" />
-    <Compile Include="Get.Data\Collections\CollectionBinderExtension.cs" />
-    <Compile Include="Get.Data\Collections\ConverterCollection.cs" />
-    <Compile Include="Get.Data\Collections\Extension.cs" />
-    <Compile Include="Get.Data\Collections\IndexUpdateCollection.cs" />
-    <Compile Include="Get.Data\Collections\IUpdateCollection.cs" />
-    <Compile Include="Get.Data\Collections\UpdateCollectionProperty.cs" />
-    <Compile Include="Get.Data\Collections\UpdateCollection.cs" />
+    <Compile Include="Get.Data\Collections\Bindings\TemplateLinker.cs" />
+    <Compile Include="Get.Data\Collections\Bindings\RefRemover.cs" />
+    <Compile Include="Get.Data\Collections\Bindings\Disposable.cs" />
+    <Compile Include="Get.Data\Collections\Bindings\CollectionBinderExtension.cs" />
+    <Compile Include="Get.Data\Collections\Collections\Collections.cs" />
+    <Compile Include="Get.Data\Collections\Implementation\AddRange.cs" />
+    <Compile Include="Get.Data\Collections\Implementation\Remove.cs" />
+    <Compile Include="Get.Data\Collections\Implementation\Add.cs" />
+    <Compile Include="Get.Data\Collections\Implementation\Contains_IndexOf.cs" />
+    <Compile Include="Get.Data\Collections\Implementation\Contains.cs" />
+    <Compile Include="Get.Data\Collections\Implementation\Clear_RemoveLast.cs" />
+    <Compile Include="Get.Data\Collections\Implementation\Clear_RemoveFirst.cs" />
+    <Compile Include="Get.Data\Collections\Implementation\Clear.cs" />
+    <Compile Include="Get.Data\Collections\Implementation\IndexOf_BinarySearch.cs" />
+    <Compile Include="Get.Data\Collections\Implementation\IndexOf_LinearSearch.cs" />
+    <Compile Include="Get.Data\Collections\Implementation\_Main.cs" />
+    <Compile Include="Get.Data\Collections\Implementation\IndexOf.cs" />
+    <Compile Include="Get.Data\Collections\Interfaces\IGDReadOnlyCollection.cs" />
+    <Compile Include="Get.Data\Collections\Interfaces\IGDFixedSizeCollection.cs" />
+    <Compile Include="Get.Data\Collections\Linq\AsEnumerable.cs" />
+    <Compile Include="Get.Data\Collections\Linq\Select_Update_Impl.cs" />
+    <Compile Include="Get.Data\Collections\Linq\WithIndex_IEnumerable.cs" />
+    <Compile Include="Get.Data\Collections\Linq\WithIndex_ReadOnly_Update.cs" />
+    <Compile Include="Get.Data\Collections\Linq\WithIndex_FixedSize_Update.cs" />
+    <Compile Include="Get.Data\Collections\Linq\WithIndex_Update.cs" />
+    <Compile Include="Get.Data\Collections\Linq\WithIndex.cs" />
+    <Compile Include="Get.Data\Collections\Linq\WithIndex_FixedSize.cs" />
+    <Compile Include="Get.Data\Collections\Linq\WithIndex_ReadOnly.cs" />
+    <Compile Include="Get.Data\Collections\Update\FixedSizeUpdateCollection.cs" />
+    <Compile Include="Get.Data\Collections\Update\ReadOnlyUpdateCollection.cs" />
+    <Compile Include="Get.Data\Collections\Conversion\IList.cs" />
+    <Compile Include="Get.Data\Collections\Conversion\Array.cs" />
+    <Compile Include="Get.Data\Collections\Conversion\IReadOnlyList.cs" />
+    <Compile Include="Get.Data\Collections\Conversion\_Main.cs" />
+    <Compile Include="Get.Data\Collections\Linq\Select_FixedSize.cs" />
+    <Compile Include="Get.Data\Collections\Linq\Select_FixedSize_Update.cs" />
+    <Compile Include="Get.Data\Collections\Linq\Select_ReadOnly_Update.cs" />
+    <Compile Include="Get.Data\Collections\Linq\Select_Update.cs" />
+    <Compile Include="Get.Data\Converters.cs" />
+    <Compile Include="Get.Data\Collections\Linq\WithIndex_Update_Impl.cs" />
+    <Compile Include="Get.Data\Collections\Linq\Eval.cs" />
+    <Compile Include="Get.Data\Collections\Linq\Select.cs" />
+    <Compile Include="Get.Data\Collections\Linq\Span.cs" />
+    <Compile Include="Get.Data\Collections\Linq\Select_ReadOnly.cs" />
+    <Compile Include="Get.Data\Collections\Linq\_Main.cs" />
+    <Compile Include="Get.Data\Collections\Update\ICollectionUpdateEvent.cs" />
+    <Compile Include="Get.Data\Collections\Update\IUpdateCollection.cs" />
+    <Compile Include="Get.Data\Collections\Interfaces\IGDCollection.cs" />
+    <Compile Include="Get.Data\Collections\Update\UpdateCollectionProperty.cs" />
+    <Compile Include="Get.Data\Collections\Collections\UpdateCollection.cs" />
     <Compile Include="Get.Data\Helper.cs" />
-    <Compile Include="Get.Data\ModelLinker\ItemsProcessor.cs" />
+    <Compile Include="Get.Data\IndexItem.cs" />
     <Compile Include="Get.Data\ModelLinker\ObservableCollectionModelLinker.cs" />
     <Compile Include="Get.Data\ModelLinker\UpdateCollectionModelLinker.cs" />
     <Compile Include="Get.Data\Properties\AttachedPropertyDefinition.cs" />
@@ -213,6 +256,7 @@
   <ItemGroup>
     <None Include="Wardininx_TemporaryKey.pfx" />
   </ItemGroup>
+  <ItemGroup />
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>

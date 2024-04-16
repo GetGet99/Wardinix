@@ -1,0 +1,2 @@
+MainPackage=D:\Programming\VS\Wardininx\Wardininx\bin\x86\Release\Wardininx_1.0.0.0_x86.msix
+SymbolPackage=D:\Programming\VS\Wardininx\Wardininx\obj\x86\Release\Symbols\Wardininx_1.0.0.0_x86.appxsym

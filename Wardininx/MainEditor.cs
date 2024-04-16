@@ -34,17 +34,13 @@ class MainEditor : UserControl
             Theme = ActualTheme
         };
         ActualThemeChanged += (_1, _2) => MicaBrush.Theme = ActualTheme;
-        UpdateCollection<WXCanvasControl> Layers = [CreateInkCanvas(), CreateInkCanvas(), CreateInkCanvas()];
-        Layers.ItemsAdded += delegate
-        {
-            var a = Layers;
-        };
+        UpdateCollectionInitializer<WXCanvasControl> Layers = [CreateInkCanvas(), CreateInkCanvas(), CreateInkCanvas()];
         Content = new Grid
         {
             Background = MicaBrush,
             Children =
             {
-                new WXCanvasController { Layers = Layers.AsReadOnly() }.UnsafeGetElement<UIElement>(),
+                new WXCanvasController { Layers = Layers }.UnsafeGetElement<UIElement>(),
                 new WXToolbar(UndoManager) {
                     LayerToolbar = { Layers = Layers, SelectedIndex = 0 }
                 }.UnsafeGetElement<UIElement>()

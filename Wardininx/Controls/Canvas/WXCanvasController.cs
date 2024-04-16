@@ -1,8 +1,9 @@
 using Get.Data.Collections;
+using Get.Data.Collections.Update;
+using Get.Data.Collections.Linq;
 using Get.Data.Helpers;
 using Get.Data.Properties;
 using Get.Data.XACL;
-using System.Collections.ObjectModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Windows.Foundation;
@@ -21,8 +22,8 @@ class WXCanvasController : AbstractedUI
     {
         CanvasBoundsProperty = new(CanvasBoundsPropertyProtected);
     }
-    public OneWayUpdateCollectionProperty<WXCanvasControl> LayersProperty { get; } = [];
-    public IReadOnlyUpdateCollection<WXCanvasControl> Layers { get => LayersProperty.Value; set => LayersProperty.Value = value; }
+    public OneWayUpdateCollectionProperty<WXCanvasControl> LayersProperty { get; } = new();
+    public IUpdateReadOnlyCollection<WXCanvasControl> Layers { get => LayersProperty.Value; set => LayersProperty.Value = value; }
     protected readonly Property<Rect> CanvasBoundsPropertyProtected = new(default);
     public static PropertyDefinition<WXCanvasControl, Rect> CanvasBoundsPropertyDefinition { get; }
         = new(x => x.CanvasBoundsProperty);

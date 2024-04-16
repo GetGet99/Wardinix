@@ -25,8 +25,8 @@ partial class WXInkCanvas : WXCanvasControl
         InkPresenter.InputDeviceTypes = Windows.UI.Core.CoreInputDeviceTypes.Mouse | Windows.UI.Core.CoreInputDeviceTypes.Pen; //  | Windows.UI.Core.CoreInputDeviceTypes.Touch 
         InkPresenter.IsInputEnabled = true;
     }
-    
-    public const float RealCanvasSize = 1 << 20;
+
+    public const float RealCanvasSize = 100000; // 1 << 20;
     CoreInkPresenterHost CoreInkPresenterHost { get; } = new();
     public InkPresenter InkPresenter
     {

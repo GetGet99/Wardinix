@@ -1,18 +1,17 @@
 #nullable enable
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Wardininx.UndoRedos;
 using Wardininx.Controls.Canvas;
-using Get.Data.Bindings;
 using Get.Data.XACL;
 using Get.Data.Properties;
 using Get.Data.Helpers;
-using Windows.UI.Xaml.Controls.Primitives;
 using Get.Data.Collections;
 using Windows.UI.ViewManagement;
 using Windows.UI.Xaml.Media;
 using Get.Symbols;
 using Windows.UI;
+using Get.Data.Collections.Update;
+using Get.Data.Collections;
 namespace Wardininx.Controls.Toolbars;
 
 class WXLayerToolbar : AbstractedUI
@@ -79,7 +78,7 @@ class WXLayerToolbarUI : WXControl
                 }.AssignTo(out var sp), sp.Children
                 )
                 {
-                    ItemsSource = Abstracted.LayersProperty.AsReadOnly(),
+                    ItemsSource = Abstracted.LayersProperty,
                     ItemTemplate = new(
                         root => new Button
                         {

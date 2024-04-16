@@ -10,10 +10,12 @@ using Get.Data.Properties;
 using Windows.UI.Xaml;
 using Get.Data.Bindings;
 using Get.Data.Collections;
+using Get.Data.Collections.Linq;
+using Get.Data.Collections.Update;
 namespace Wardininx.Controls.Canvas;
 class WXCanvasCollectionControl : WXCanvasControl
 {
-    public UpdateCollection<WXCanvasControl> Children { get; } = [];
+    public TwoWayUpdateCollectionProperty<WXCanvasControl> Children { get; } = new();
     protected override UIElement CreateUI() => new WXCanvasCollectionControlUI(this, CanvasBoundsPropertyProtected);
 }
 partial class WXCanvasCollectionControlUI : WXCanvasControlUI
@@ -41,11 +43,43 @@ partial class WXCanvasCollectionControlUI : WXCanvasControlUI
         var gui = (UserControl)GetTemplateChild(App.GUIRootName);
         gui.Content = new Grid()
         {
-            Children = { Abstracted.Children.WithForwardConverter(x => x.UnsafeGetElement<UIElement>()) },
+            Children = { Abstracted.Children.AsUpdate().Select(x => x.UnsafeGetElement<UIElement>()) },
             Background = new SolidColorBrush(Colors.Transparent)
         };
-        Abstracted.Children.ItemsAdded += (_, xs) => OnItemsAdded(xs);
-        void OnItemsAdded(IReadOnlyList<WXCanvasControl> xs)
+        Abstracted.Children.ItemsChanged += (actions) =>
+        {
+            foreach (var action in actions)
+            {
+                if (action is ItemsAddedUpdateAction<WXCanvasControl> added)
+                    OnItemsAdded(added.Items.AsEnumerable());
+                if (action is ItemsRemovedUpdateAction<WXCanvasControl> removed)
+                {
+                    var xs = removed.Items.AsEnumerable();
+                    foreach (var x in xs)
+                    {
+                        var curBounds = Abstracted.CanvasBounds;
+                        var removedBounds = x.CanvasBounds;
+                        if (removedBounds.Top == curBounds.Top ||
+                            removedBounds.Bottom == curBounds.Bottom ||
+                            removedBounds.Left == curBounds.Left ||
+                            removedBounds.Right == curBounds.Right)
+                        {
+                            Rect r = default;
+                            if (Abstracted.Children.Count > 1)
+                            {
+                                r = Abstracted.Children[0].CanvasBounds;
+                            }
+                            foreach (var c in Abstracted.Children.AsUpdate().AsEnumerable())
+                            {
+                                if (c.CanvasBounds != default) r.Union(c.CanvasBounds);
+                            }
+                            CanvasBoundsWriter.Value = r;
+                        }
+                    }
+                }
+            }
+        };
+        void OnItemsAdded(IEnumerable<WXCanvasControl> xs)
         {
             foreach (var x in xs)
             {
@@ -59,7 +93,7 @@ partial class WXCanvasCollectionControlUI : WXCanvasControlUI
                     {
                         r = Abstracted.Children[0].CanvasBounds;
                     }
-                    foreach (var c in Abstracted.Children)
+                    foreach (var c in Abstracted.Children.AsUpdate().AsEnumerable())
                     {
                         if (c.CanvasBounds != default) r.Union(c.CanvasBounds);
                     }
@@ -69,31 +103,7 @@ partial class WXCanvasCollectionControlUI : WXCanvasControlUI
                 x.CanvasBoundsProperty.ValueChanged += ev;
             }
         }
-        Abstracted.Children.ItemsRemoved += (_, xs) =>
-        {
-            foreach (var x in xs)
-            {
-                var curBounds = Abstracted.CanvasBounds;
-                var removedBounds = x.CanvasBounds;
-                if (removedBounds.Top == curBounds.Top ||
-                    removedBounds.Bottom == curBounds.Bottom ||
-                    removedBounds.Left == curBounds.Left ||
-                    removedBounds.Right == curBounds.Right)
-                {
-                    Rect r = default;
-                    if (Abstracted.Children.Count > 1)
-                    {
-                        r = Abstracted.Children[0].CanvasBounds;
-                    }
-                    foreach (var c in Abstracted.Children)
-                    {
-                        if (c.CanvasBounds != default) r.Union(c.CanvasBounds);
-                    }
-                    CanvasBoundsWriter.Value = r;
-                }
-            }
-        };
-        OnItemsAdded(Abstracted.Children.AsReadOnly());
+        OnItemsAdded(Abstracted.Children.AsUpdate().AsEnumerable());
         base.OnApplyTemplate();
     }
 }

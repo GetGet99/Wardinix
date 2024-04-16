@@ -1,8 +1,10 @@
 using System.Collections;
+using System.Numerics;
 using Wardininx.Controls.Canvas;
 using Wardininx.UndoRedos;
 using Windows.Foundation;
 using Windows.UI.Input.Inking;
+using Windows.UI.Input.Inking.Core;
 
 namespace Wardininx.Classes;
 class WXInkController
@@ -12,6 +14,23 @@ class WXInkController
     InkPresenter InkPresenter { get; }
     public InkRefTracker InkRefTracker { get; } = new();
     public InkInputProcessingConfiguration InputProcessingConfiguration => InkPresenter.InputProcessingConfiguration;
+    InkPresenterProtractor? Ruler;
+    public bool IsRulerVisible { get => Ruler?.IsVisible ?? false;
+        set
+        {
+            Ruler ??= new(InkPresenter);
+            if (value)
+            {
+                var rect = InkPresenter.StrokeContainer.BoundingRect;
+                Vector2 tran = new((float)(rect.Left + rect.Right) / 2, (float)(rect.Top + rect.Bottom) / 2);
+                //tran.X -= (float)Ruler.Length;
+                //tran.Y -= (float)Ruler.Width;
+                Ruler.Transform = Matrix3x2.CreateRotation(MathF.PI / 4) * Matrix3x2.CreateTranslation(tran);
+            }
+            Ruler.IsVisible = value;
+            //Ruler.
+        }
+    }
     public WXInkController(UndoManager UndoManager, InkPresenter InkPresenter)
     {
         this.UndoManager = UndoManager;
@@ -19,6 +38,19 @@ class WXInkController
         Selection = new(this, InkPresenter);
         InkPresenter.StrokesCollected += (o, e) => RecordAddStrokes(e.Strokes);
         InkPresenter.StrokesErased += (o, e) => RecordEraseStrokes(e.Strokes);
+        var wetUpdateSource = CoreWetStrokeUpdateSource.Create(InkPresenter);
+        wetUpdateSource.WetStrokeStarting += (_, e) => Snap(e.NewInkPoints);
+        wetUpdateSource.WetStrokeContinuing += (_, e) => Snap(e.NewInkPoints);
+        wetUpdateSource.WetStrokeCompleted += (_, e) => Snap(e.NewInkPoints);
+        wetUpdateSource.WetStrokeStopping += (_, e) => Snap(e.NewInkPoints);
+        wetUpdateSource.WetStrokeCompleted += (_, e) => Snap(e.NewInkPoints);
+    }
+    void Snap(IList<InkPoint> points)
+    {
+        //for (int i = 0; i < points.Count; i++)
+        //{
+        //    points[i] = new(points[i].Position with { X = WXInkCanvas.RealCanvasSize / 2 }, points[i].Pressure);
+        //}
     }
     public void UpdateDefaultDrawingAttributes(InkDrawingAttributes drawingAttributes)
         => InkPresenter.UpdateDefaultDrawingAttributes(drawingAttributes);

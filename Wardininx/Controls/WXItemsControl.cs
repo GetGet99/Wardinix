@@ -4,12 +4,17 @@ using Windows.UI.Xaml.Controls;
 using Get.Data.Bindings;
 using Windows.UI.Xaml;
 using Get.Data.Collections;
+using Get.Data.Collections.Update;
+using Get.Data;
+using System.Reflection;
+using Get.Data.Collections.Linq;
+using Get.Data.Collections.Conversion;
 
 namespace Wardininx.Controls;
 abstract class WXItemsControlBase<T, TTemplate> : WXControl where TTemplate : class
 {
     public OneWayUpdateCollectionProperty<T> ItemsSourceProperty { get; } = new();
-    public IReadOnlyUpdateCollection<T> ItemsSource { get => ItemsSourceProperty.Value; set => ItemsSourceProperty.Value = value; }
+    public IUpdateReadOnlyCollection<T> ItemsSource { get => ItemsSourceProperty.Value; set => ItemsSourceProperty.Value = value; }
     public Property<TTemplate?> ItemTemplateProperty { get; } = new(null);
     public TTemplate? ItemTemplate
     {
@@ -44,9 +49,9 @@ abstract class WXItemsControlBase<T, TTemplate> : WXControl where TTemplate : cl
 
 class WXItemsControl<T>(UIElement element, IList<UIElement> children) : WXItemsControlBase<T, DataTemplate<T, UIElement>>(element, children)
 {
-    public static PropertyDefinition<WXItemsControl<T>, IReadOnlyUpdateCollection<T>> ItemsSourcePropertyDefinition { get; } = new(x => x.ItemsSourceProperty);
+    public static PropertyDefinition<WXItemsControl<T>, IUpdateReadOnlyCollection<T>> ItemsSourcePropertyDefinition { get; } = new(x => x.ItemsSourceProperty);
     protected override IDisposable Bind(OneWayUpdateCollectionProperty<T> collection, IList<UIElement> @out, DataTemplate<T, UIElement> dataTemplate)
-        => collection.Bind(@out, dataTemplate);
+        => collection.Bind(@out.AsGDCollection(), dataTemplate);
 }
 
 class WXSelectableItem<T>(Binding<IndexItem<T>> itemBinding, WXSelectableItemsControl<T> source)
@@ -76,41 +81,39 @@ class WXSelectableItemsControl<T> : WXItemsControlBase<T, DataTemplate<WXSelecta
     {
         SelectedValueProperty = new(_SelectedValueProperty);
         SelectedIndexProperty.ValueChanged += SelectedIndexProperty_ValueChanged;
-        ItemsSourceProperty.ItemsAdded += ItemsSourceProperty_ItemsAdded;
-        ItemsSourceProperty.ItemsRemoved += ItemsSourceProperty_ItemsRemoved;
-        ItemsSourceProperty.ItemsMoved += ItemsSourceProperty_ItemsMoved;
-        ItemsSourceProperty.ItemsReplaced += ItemsSourceProperty_ItemsReplaced;
+        ItemsSourceProperty.ItemsChanged += ItemsSourceProperty_ItemsChanged;
     }
 
-
-    private void ItemsSourceProperty_ItemsAdded(int startingIndex, IReadOnlyList<T> item)
+    private void ItemsSourceProperty_ItemsChanged(IEnumerable<IUpdateAction<T>> actions)
     {
-        if (startingIndex <= SelectedIndex)
-            SelectedIndex += item.Count;
-    }
-
-    private void ItemsSourceProperty_ItemsRemoved(int startingIndex, IReadOnlyList<T> item)
-    {
-        if (startingIndex <= SelectedIndex)
+        foreach (var action in actions)
         {
-            if (SelectedIndex >= startingIndex + item.Count)
-                SelectedIndex -= item.Count;
-            else
-                // the item that we selected got removed
-                SelectedIndex = -1;
-        }
-    }
-    private void ItemsSourceProperty_ItemsReplaced(int index, T oldItem, T newItem)
-    {
-        if (SelectedIndex == index) SelectedIndex = -1;
-    }
 
-    private void ItemsSourceProperty_ItemsMoved(int oldIndex, int newIndex, T oldIndexItem, T newIndexItem)
-    {
-        if (SelectedIndex == oldIndex)
-            SelectedIndex = newIndex;
-        if (SelectedIndex == newIndex)
-            SelectedIndex = oldIndex;
+            switch (action)
+            {
+                case ItemsAddedUpdateAction<T> added:
+                    if (added.StartingIndex <= SelectedIndex)
+                        SelectedIndex += added.Items.Count;
+                    break;
+                case ItemsRemovedUpdateAction<T> removed:
+                    if (removed.StartingIndex <= SelectedIndex)
+                    {
+                        if (SelectedIndex >= removed.StartingIndex + removed.Items.Count)
+                            SelectedIndex -= removed.Items.Count;
+                        else
+                            // the item that we selected got removed
+                            SelectedIndex = -1;
+                    }
+                    break;
+                case ItemsMovedUpdateAction<T> moved:
+                    if (SelectedIndex == moved.OldIndex) SelectedIndex = moved.NewIndex;
+                    if (SelectedIndex == moved.NewIndex) SelectedIndex = moved.OldIndex;
+                    break;
+                case ItemsReplacedUpdateAction<T> replaced:
+                    if (SelectedIndex == replaced.Index) SelectedIndex = -1;
+                    break;
+            }
+        }
     }
 
     private void SelectedIndexProperty_ValueChanged(int oldValue, int newValue)
@@ -131,13 +134,13 @@ class WXSelectableItemsControl<T> : WXItemsControlBase<T, DataTemplate<WXSelecta
     public ReadOnlyProperty<T?> SelectedValueProperty { get; }
     public T? SelectedValue => _SelectedValueProperty.Value;
 
-    readonly UpdateCollection<WXSelectableItem<T>> tempCollection = [];
-    public static PropertyDefinition<WXSelectableItemsControl<T>, IReadOnlyUpdateCollection<T>> ItemsSourcePropertyDefinition { get; } = new(x => x.ItemsSourceProperty);
+    readonly UpdateCollection<WXSelectableItem<T>> tempCollection = new();
+    public static PropertyDefinition<WXSelectableItemsControl<T>, IUpdateReadOnlyCollection<T>> ItemsSourcePropertyDefinition { get; } = new(x => x.ItemsSourceProperty);
     protected override IDisposable Bind(OneWayUpdateCollectionProperty<T> collection, IList<UIElement> @out, DataTemplate<WXSelectableItem<T>, UIElement> dataTemplate)
     {
         tempCollection.Clear();
-        var a = collection.WithIndex().Bind(tempCollection, new(root => new(root, this)));
-        var b = tempCollection.Bind(@out, dataTemplate);
+        var a = collection.AsUpdateReadOnly().WithIndex().Bind(tempCollection, new(root => new(root, this)));
+        var b = tempCollection.Bind(@out.AsGDCollection(), dataTemplate);
         return new Get.Data.Bindings.Disposable(() =>
         {
             a.Dispose();

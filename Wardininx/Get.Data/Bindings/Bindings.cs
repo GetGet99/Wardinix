@@ -1,4 +1,5 @@
 ﻿using Get.Data.Collections;
+using Get.Data.Collections.Update;
 using Get.Data.Properties;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -126,7 +127,7 @@ public abstract class Binding<TOut>
         => Binding<TIn>.Create(pIn).To(pDef);
     public static Binding<TOut> Create(ObservableCollection<TOut> collection, Binding<int> index)
         => new ObservableCollectionBinding<TOut>(collection, index);
-    public static Binding<TOut> Create(IReadOnlyUpdateCollection<TOut> collection, Binding<int> index)
+    public static Binding<TOut> Create(IUpdateReadOnlyCollection<TOut> collection, Binding<int> index)
         => new OneWayUpdateCollectionBinding<TOut>(collection, index);
     public static Binding<TOut> Create(IUpdateCollection<TOut> collection, Binding<int> index)
         => new UpdateCollectionBinding<TOut>(collection, index);
@@ -137,28 +138,30 @@ public class UpdateCollectionBinding<TOut>(IUpdateCollection<TOut> collection, B
     public override TOut? CurrentValue { get => value; set => collection[index.CurrentValue] = value; }
     protected override void RegisterValueChangedEvents()
     {
-        collection.ItemsAdded += Collection_ItemsAddedRemoved;
-        collection.ItemsRemoved += Collection_ItemsAddedRemoved;
-        collection.ItemsReplaced += Collection_ItemsReplaced;
-        collection.ItemsMoved += Collection_ItemsMoved;
+        collection.ItemsChanged += Collection_ItemsChanged;
         index.ValueChanged += InvokeIndexChanged;
     }
 
-
-    private void Collection_ItemsAddedRemoved(int startingIndex, IReadOnlyList<TOut> item)
+    private void Collection_ItemsChanged(IEnumerable<IUpdateAction<TOut>> actions)
     {
-        if (startingIndex >= index.CurrentValue) UpdateValue();
+        UpdateValue();
+
+        //void Collection_ItemsAddedRemoved(int startingIndex, IReadOnlyList<TOut> item)
+        //{
+        //    if (startingIndex >= index.CurrentValue) UpdateValue();
+        //}
+
+        //void Collection_ItemsReplaced(int i, TOut oldItem, TOut newItem)
+        //{
+        //    if (i == index.CurrentValue) UpdateValue();
+        //}
+
+        //void Collection_ItemsMoved(int oldIndex, int newIndex, TOut oldIndexItem, TOut newIndexItem)
+        //{
+        //    if (oldIndex == index.CurrentValue || newIndex == index.CurrentValue) UpdateValue();
+        //}
     }
 
-    private void Collection_ItemsReplaced(int i, TOut oldItem, TOut newItem)
-    {
-        if (i == index.CurrentValue) UpdateValue();
-    }
-
-    private void Collection_ItemsMoved(int oldIndex, int newIndex, TOut oldIndexItem, TOut newIndexItem)
-    {
-        if (oldIndex == index.CurrentValue || newIndex == index.CurrentValue) UpdateValue();
-    }
     void UpdateValue()
     {
         var newValue = Get(index.CurrentValue);
@@ -197,33 +200,36 @@ public class UpdateCollectionBinding<TOut>(IUpdateCollection<TOut> collection, B
     protected override void UnregisterRootChangedEvents() { }
 
 }
-public class OneWayUpdateCollectionBinding<TOut>(IReadOnlyUpdateCollection<TOut> collection, Binding<int> index) : Binding<TOut?>
+public class OneWayUpdateCollectionBinding<TOut>(IUpdateReadOnlyCollection<TOut> collection, Binding<int> index) : Binding<TOut?>
 {
     TOut? value = index.CurrentValue >= 0 ? collection[index.CurrentValue] : default;
     public override TOut? CurrentValue { get => value; set => throw new InvalidOperationException("Cannot go backwards"); }
     protected override void RegisterValueChangedEvents()
     {
-        collection.ItemsAdded += Collection_ItemsAddedRemoved;
-        collection.ItemsRemoved += Collection_ItemsAddedRemoved;
-        collection.ItemsReplaced += Collection_ItemsReplaced;
-        collection.ItemsMoved += Collection_ItemsMoved; ;
+        collection.ItemsChanged += Collection_ItemsChanged;
         index.ValueChanged += InvokeIndexChanged;
     }
 
 
-    private void Collection_ItemsAddedRemoved(int startingIndex, IReadOnlyList<TOut> item)
-    {
-        if (startingIndex >= index.CurrentValue) UpdateValue();
-    }
 
-    private void Collection_ItemsReplaced(int i, TOut oldItem, TOut newItem)
+    private void Collection_ItemsChanged(IEnumerable<IUpdateAction<TOut>> actions)
     {
-        if (i == index.CurrentValue) UpdateValue();
-    }
+        UpdateValue();
 
-    private void Collection_ItemsMoved(int oldIndex, int newIndex, TOut oldIndexItem, TOut newIndexItem)
-    {
-        if (oldIndex == index.CurrentValue || newIndex == index.CurrentValue) UpdateValue();
+        //void Collection_ItemsAddedRemoved(int startingIndex, IReadOnlyList<TOut> item)
+        //{
+        //    if (startingIndex >= index.CurrentValue) UpdateValue();
+        //}
+
+        //void Collection_ItemsReplaced(int i, TOut oldItem, TOut newItem)
+        //{
+        //    if (i == index.CurrentValue) UpdateValue();
+        //}
+
+        //void Collection_ItemsMoved(int oldIndex, int newIndex, TOut oldIndexItem, TOut newIndexItem)
+        //{
+        //    if (oldIndex == index.CurrentValue || newIndex == index.CurrentValue) UpdateValue();
+        //}
     }
     void UpdateValue()
     {
@@ -468,8 +474,6 @@ public class ValueBinding<TOut>(TOut initialOwner) : Binding<TOut>
 
     protected override void UnregisterRootChangedEvents() { }
 }
-public delegate TOut ForwardConverter<TIn, TOut>(TIn input);
-public delegate TIn BackwardConverter<TIn, TOut>(TOut output);
 public delegate TIn AdvancedBackwardConverter<TIn, TOut>(TOut output, TIn oldInput);
 class ConvertBinding<TIn, TOut>(Binding<TIn> inBinding, ForwardConverter<TIn, TOut> converter, AdvancedBackwardConverter<TIn, TOut> backwardConverter) : Binding<TOut>
 {

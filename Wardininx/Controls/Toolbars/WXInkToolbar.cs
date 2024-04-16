@@ -3,7 +3,7 @@ using Get.Data.Helpers;
 using Get.Data.Properties;
 using Get.Data.Bindings;
 using Get.Data.XACL;
-using System.Collections.ObjectModel;
+using Get.Data.Collections.Linq;
 using Windows.UI;
 using Windows.UI.Input.Inking;
 using Windows.UI.Xaml;
@@ -13,6 +13,7 @@ using Wardininx.Classes;
 using Get.Symbols;
 using Get.Data.Collections;
 using Windows.UI.ViewManagement;
+using Get.Data.Collections.Update;
 namespace Wardininx.Controls.Toolbars;
 
 class WXInkToolbar : AbstractedUI
@@ -108,7 +109,7 @@ class WXInkToolbar : AbstractedUI
         LassoSelect,
         RectSelect
     }
-    public UpdateCollection<Color> FavoritePenColors { get; } = [
+    public UpdateCollectionInitializer<Color> FavoritePenColors { get; } = [
         Colors.Black,
         Colors.White,
         Color.FromArgb(255, 192, 29, 29), // red
@@ -118,9 +119,9 @@ class WXInkToolbar : AbstractedUI
         Color.FromArgb(255, 101, 0, 203), // purple
     ];
     public Property<int> PenColorIndexProperty { get; } = new(default);
-    public UpdateCollection<double> FavoritePenSizes { get; } = [];
+    public UpdateCollection<double> FavoritePenSizes { get; } = new();
     public Property<int> PenSizeIndexProperty { get; } = new(default);
-    public UpdateCollection<Color> FavoriteHighlighterColors { get; } = [
+    public UpdateCollectionInitializer<Color> FavoriteHighlighterColors { get; } = [
         Color.FromArgb(255, 235, 0, 139), // pink highlight
         Color.FromArgb(255, 255, 85, 0),  // orange highlight
         Color.FromArgb(255, 192, 29, 29), // red
@@ -130,7 +131,7 @@ class WXInkToolbar : AbstractedUI
         Color.FromArgb(255, 102, 0, 204), // purple highlight
     ];
     public Property<int> HighlighterColorIndexProperty { get; } = new(default);
-    public UpdateCollection<double> FavoriteHighlighterSizes { get; } = [];
+    public UpdateCollection<double> FavoriteHighlighterSizes { get; } = new();
     public Property<int> HighlighterSizeIndexProperty { get; } = new(default);
 }
 
@@ -175,7 +176,7 @@ class WXInkToolbarUI : WXControl
         }
         var gui = (UserControl)GetTemplateChild(App.GUIRootName);
 
-        FrameworkElement CreateColorPickerUI(IReadOnlyUpdateCollection<Color> source, Property<int> SelectedIndexProperty)
+        FrameworkElement CreateColorPickerUI(IUpdateReadOnlyCollection<Color> source, Property<int> SelectedIndexProperty)
             => new WXSelectableItemsControl<Color>(
                 new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 }.AssignTo(out var sp),
                 sp.Children
@@ -284,6 +285,12 @@ class WXInkToolbarUI : WXControl
                         .WithCustomCode(x => SetupButton(x, WXInkToolbar.EditingModes.Highlighter)),
                         new Button() { Content = new SymbolExIcons(SymbolEx.StrokeErase).Build() }
                         .WithCustomCode(x => SetupButton(x, WXInkToolbar.EditingModes.Eraser)),
+                        new Button() { Content = new SymbolExIcons(SymbolEx.Ruler).Build() }
+                        .WithCustomCode(x => x.Click += delegate
+                        {
+                            if (Abstracted.InkController is not null)
+                                Abstracted.InkController.IsRulerVisible = !Abstracted.InkController.IsRulerVisible;
+                        }),
                         //new Button() { Content = "L" }.WithCustomCode(x => x.Click += (_, _) => Abstracted.EditingMode = WXInkToolbar.EditingModes.LassoSelect),
                         //new Button() { Content = "R" }.WithCustomCode(x => x.Click += (_, _) => Abstracted.EditingMode = WXInkToolbar.EditingModes.RectSelect),
                         new Button() { Content = new SymbolExIcons(SymbolEx.Undo).Build() }.WithCustomCode(x => x.Click += (_, _) => Abstracted.Parent.UndoManager.Undo())
@@ -294,7 +301,7 @@ class WXInkToolbarUI : WXControl
                         .WithOneWayBinding(new() {
                             { IsEnabledProperty.AsPropertyDefinition<Button, bool>(), Abstracted.Parent.UndoManager.IsRedoableProperty }
                         }),
-                        CreateColorPickerUI(Abstracted.FavoritePenColors.AsReadOnly(), Abstracted.PenColorIndexProperty)
+                        CreateColorPickerUI(Abstracted.FavoritePenColors, Abstracted.PenColorIndexProperty)
                         .WithOneWayBinding(new()
                         {
                             {
@@ -306,7 +313,7 @@ class WXInkToolbarUI : WXControl
                             }
                         })
                         .WithCustomCode(x => x.Margin = new(0, 0, -4, 0)),
-                        CreateColorPickerUI(Abstracted.FavoriteHighlighterColors.AsReadOnly(), Abstracted.HighlighterColorIndexProperty)
+                        CreateColorPickerUI(Abstracted.FavoriteHighlighterColors, Abstracted.HighlighterColorIndexProperty)
                         .WithOneWayBinding(new()
                         {
                             {
