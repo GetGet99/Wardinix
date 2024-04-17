@@ -176,6 +176,7 @@
     <Compile Include="Get.Data\Collections\Bindings\Disposable.cs" />
     <Compile Include="Get.Data\Collections\Bindings\CollectionBinderExtension.cs" />
     <Compile Include="Get.Data\Collections\Collections\Collections.cs" />
+    <Compile Include="Get.Data\Debug.cs" />
     <Compile Include="Get.Data\Collections\Implementation\AddRange.cs" />
     <Compile Include="Get.Data\Collections\Implementation\Remove.cs" />
     <Compile Include="Get.Data\Collections\Implementation\Add.cs" />
@@ -191,6 +192,13 @@
     <Compile Include="Get.Data\Collections\Interfaces\IGDReadOnlyCollection.cs" />
     <Compile Include="Get.Data\Collections\Interfaces\IGDFixedSizeCollection.cs" />
     <Compile Include="Get.Data\Collections\Linq\AsEnumerable.cs" />
+    <Compile Include="Get.Data\Collections\Linq\Reverse_FixedSize.cs" />
+    <Compile Include="Get.Data\Collections\Linq\Reverse_ReadOnly.cs" />
+    <Compile Include="Get.Data\Collections\Linq\Reverse.cs" />
+    <Compile Include="Get.Data\Collections\Linq\Reverse_Update_ReadOnly.cs" />
+    <Compile Include="Get.Data\Collections\Linq\Reverse_Update_FixedSize.cs" />
+    <Compile Include="Get.Data\Collections\Linq\Reverse_Update.cs" />
+    <Compile Include="Get.Data\Collections\Linq\Reverse_Update_Impl.cs" />
     <Compile Include="Get.Data\Collections\Linq\Select_Update_Impl.cs" />
     <Compile Include="Get.Data\Collections\Linq\WithIndex_IEnumerable.cs" />
     <Compile Include="Get.Data\Collections\Linq\WithIndex_ReadOnly_Update.cs" />

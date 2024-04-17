@@ -84,7 +84,20 @@ partial class WXInkCanvasUI : WXCanvasControlUI
             RootVisual.IsHitTestVisible = @new;
         };
         RootVisual.IsHitTestVisible = Abstracted.IsSelected;
+        Loaded += WXInkCanvasUI_Loaded;
+        Unloaded += WXInkCanvasUI_Unloaded;
     }
+
+    private void WXInkCanvasUI_Unloaded(object sender, RoutedEventArgs e)
+    {
+        RootVisual.IsVisible = false;
+    }
+
+    private void WXInkCanvasUI_Loaded(object sender, RoutedEventArgs e)
+    {
+        RootVisual.IsVisible = true;
+    }
+
     readonly Compositor Compositor;
     readonly ContainerVisual InfiniteVisual;
     readonly ContainerVisual UserOffsetVisual, InternalOffsetVisual;

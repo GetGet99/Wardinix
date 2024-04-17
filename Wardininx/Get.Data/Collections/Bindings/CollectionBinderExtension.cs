@@ -15,6 +15,7 @@ public static class CollectionBinderExtension
         {
             a.Dispose();
             b.Dispose();
+            @out.Clear();
         });
     }
     public static IDisposable Bind<T>(this IUpdateCollection<T> collection, IGDCollection<T> @out)
@@ -23,6 +24,10 @@ public static class CollectionBinderExtension
     {
         var linker = new UpdateCollectionModelLinker<T>(collection, @out);
         linker.ResetAndReadd();
-        return linker;
+        return new Disposable(() =>
+        {
+            linker.Dispose();
+            @out.Clear();
+        });
     }
 }

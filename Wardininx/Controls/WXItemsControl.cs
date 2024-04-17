@@ -23,9 +23,9 @@ abstract class WXItemsControlBase<T, TTemplate> : WXControl where TTemplate : cl
         set => ItemTemplateProperty.Value = value;
     }
     IDisposable? _collectionBinder;
-    readonly IList<UIElement> _targetChildren;
+    readonly IGDCollection<UIElement> _targetChildren;
     readonly UIElement _element;
-    public WXItemsControlBase(UIElement element, IList<UIElement> children)
+    public WXItemsControlBase(UIElement element, IGDCollection<UIElement> children)
     {
         _element = element;
         _targetChildren = children;
@@ -45,14 +45,16 @@ abstract class WXItemsControlBase<T, TTemplate> : WXControl where TTemplate : cl
         TemplatedParent = (UserControl)GetTemplateChild(App.GUIRootName);
         TemplatedParent.Content = _element;
     }
-    protected abstract IDisposable Bind(OneWayUpdateCollectionProperty<T> collection, IList<UIElement> @out, TTemplate dataTemplate);
+    protected abstract IDisposable Bind(OneWayUpdateCollectionProperty<T> collection, IGDCollection<UIElement> @out, TTemplate dataTemplate);
 }
 
-class WXItemsControl<T>(UIElement element, IList<UIElement> children) : WXItemsControlBase<T, DataTemplate<T, UIElement>>(element, children)
+class WXItemsControl<T>(UIElement element, IGDCollection<UIElement> children) : WXItemsControlBase<T, DataTemplate<T, UIElement>>(element, children)
 {
+    public WXItemsControl(UIElement element, IList<UIElement> children)
+        : this(element, children.AsGDCollection()) { }
     public static PropertyDefinition<WXItemsControl<T>, IUpdateReadOnlyCollection<T>> ItemsSourcePropertyDefinition { get; } = new(x => x.ItemsSourceProperty);
-    protected override IDisposable Bind(OneWayUpdateCollectionProperty<T> collection, IList<UIElement> @out, DataTemplate<T, UIElement> dataTemplate)
-        => collection.Bind(@out.AsGDCollection(), dataTemplate);
+    protected override IDisposable Bind(OneWayUpdateCollectionProperty<T> collection, IGDCollection<UIElement> @out, DataTemplate<T, UIElement> dataTemplate)
+        => collection.Bind(@out, dataTemplate);
 }
 
 class WXSelectableItem<T>(IReadOnlyBinding<IndexItem<T>> itemBinding, WXSelectableItemsControl<T> source)
@@ -78,6 +80,8 @@ class WXSelectableItem<T>(IReadOnlyBinding<IndexItem<T>> itemBinding, WXSelectab
 class WXSelectableItemsControl<T> : WXItemsControlBase<T, DataTemplate<WXSelectableItem<T>, UIElement>>
 {
     public WXSelectableItemsControl(UIElement element, IList<UIElement> children)
+        : this(element, children.AsGDCollection()) { }
+    public WXSelectableItemsControl(UIElement element, IGDCollection<UIElement> children)
         : base(element, children)
     {
         SelectedValueProperty = new(_SelectedValueProperty);
@@ -137,11 +141,11 @@ class WXSelectableItemsControl<T> : WXItemsControlBase<T, DataTemplate<WXSelecta
 
     readonly UpdateCollection<WXSelectableItem<T>> tempCollection = new();
     public static PropertyDefinition<WXSelectableItemsControl<T>, IUpdateReadOnlyCollection<T>> ItemsSourcePropertyDefinition { get; } = new(x => x.ItemsSourceProperty);
-    protected override IDisposable Bind(OneWayUpdateCollectionProperty<T> collection, IList<UIElement> @out, DataTemplate<WXSelectableItem<T>, UIElement> dataTemplate)
+    protected override IDisposable Bind(OneWayUpdateCollectionProperty<T> collection, IGDCollection<UIElement> @out, DataTemplate<WXSelectableItem<T>, UIElement> dataTemplate)
     {
         tempCollection.Clear();
         var a = collection.AsUpdateReadOnly().WithIndex().Bind(tempCollection, new(root => new(root, this)));
-        var b = tempCollection.Bind(@out.AsGDCollection(), dataTemplate);
+        var b = tempCollection.Bind(@out, dataTemplate);
         return new Get.Data.Bindings.Disposable(() =>
         {
             a.Dispose();

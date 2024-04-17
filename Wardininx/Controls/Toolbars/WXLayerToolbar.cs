@@ -13,6 +13,8 @@ using Windows.UI;
 using Get.Data.Collections.Update;
 using Get.Data.Bindings.Linq;
 using System.Diagnostics;
+using Get.Data.Collections.Conversion;
+using Get.Data.Collections.Linq;
 namespace Wardininx.Controls.Toolbars;
 
 class WXLayerToolbar : AbstractedUI
@@ -70,13 +72,24 @@ class WXLayerToolbarUI : WXControl
             }.AssignTo(out var brush),
             Children =
             {
+                new Button()
+                {
+                    Content = new SymbolExIcons(SymbolEx.Add).Build(),
+                    Width = 35,
+                    Height = 35,
+                    Padding = new(5)
+                }.WithCustomCode(x => x.Click += delegate
+                {
+                    Abstracted.LayersProperty.Add(new WXInkCanvas(Abstracted.Parent.UndoManager));
+                    Abstracted.SelectedIndex = Abstracted.LayersProperty.Count - 1;
+                }),
                 new WXSelectableItemsControl<WXCanvasControl>(
                     new StackPanel {
-                    Orientation = Orientation.Vertical,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    Spacing = 4,
-                }.AssignTo(out var sp), sp.Children
+                        Orientation = Orientation.Vertical,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Bottom,
+                        Spacing = 4,
+                    }.AssignTo(out var sp), sp.Children.AsGDCollection().Reverse()
                 )
                 {
                     ItemsSource = Abstracted.LayersProperty,
@@ -125,17 +138,6 @@ class WXLayerToolbarUI : WXControl
                 }).WithOneWayToSourceBinding(new()
                 {
                     { WXSelectableItemsControl<WXCanvasControl>.SelectedValuePropertyDefnition, Abstracted.SelectedLayerProperty }
-                }),
-                new Button()
-                {
-                    Content = new SymbolExIcons(SymbolEx.Add).Build(),
-                    Width = 35,
-                    Height = 35,
-                    Padding = new(5)
-                }.WithCustomCode(x => x.Click += delegate
-                {
-                    Abstracted.LayersProperty.Add(new WXInkCanvas(Abstracted.Parent.UndoManager));
-                    Abstracted.SelectedIndex = Abstracted.LayersProperty.Count - 1;
                 })
             }
         };

@@ -1,9 +1,16 @@
 using Get.Data.Collections;
+using Get.Data.Helpers;
+using Get.Data.Properties;
+using Get.Data.XACL;
+using System.Text;
 using Wardininx.Controls.Canvas;
 using Wardininx.Controls.Toolbars;
 using Wardininx.UndoRedos;
+using Windows.Data.Json;
+using Windows.Storage.Pickers;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Input;
 
 namespace Wardininx;
 
@@ -23,7 +30,8 @@ class MainEditor : UserControl
             Theme = ActualTheme
         };
         ActualThemeChanged += (_1, _2) => MicaBrush.Theme = ActualTheme;
-        UpdateCollectionInitializer<WXCanvasControl> Layers = [CreateInkCanvas(), CreateInkCanvas(), CreateInkCanvas()];
+        UpdateCollectionInitializer<WXCanvasControl> Layers = [CreateInkCanvas()];
+        Property<int> SelectedIndexProperty = new(0);
         Content = new Grid
         {
             Background = MicaBrush,
@@ -31,8 +39,79 @@ class MainEditor : UserControl
             {
                 new WXCanvasController { Layers = Layers }.UnsafeGetElement<UIElement>(),
                 new WXToolbar(UndoManager) {
-                    LayerToolbar = { Layers = Layers, SelectedIndex = 0 }
-                }.UnsafeGetElement<UIElement>()
+                    LayerToolbar = { Layers = Layers }
+                }
+                .AssignTo(out var toolbar)
+                .UnsafeGetElement<UIElement>()
+            }
+        };
+        toolbar.LayerToolbar.SelectedIndexProperty.Bind(SelectedIndexProperty, Get.Data.Bindings.ReadOnlyBindingModes.OneWay);
+        KeyDown += async (o, e) =>
+        {
+            if (e.Key == Windows.System.VirtualKey.S)
+            {
+                var filePicker = new FileSavePicker()
+                {
+                    DefaultFileExtension = ".wdii",
+                    FileTypeChoices =
+                {
+                    { "Wardinix file", [".wdii"] }
+                }
+                };
+                var file = await filePicker.PickSaveFileAsync();
+                if (file is null) return;
+                var jsonArr = new JsonArray();
+                foreach (var layer in Layers)
+                {
+                    if (layer is WXInkCanvas inkCanvas)
+                    {
+                        using var ms = new MemoryStream();
+                        await inkCanvas.InkPresenter.StrokeContainer.SaveAsync(ms.AsRandomAccessStream());
+                        jsonArr.Add(new JsonObject
+                    {
+                        { "LayerType", JsonValue.CreateStringValue("Ink") },
+                        { "InkData", JsonValue.CreateStringValue(Convert.ToBase64String(ms.ToArray())) }
+                    });
+                    }
+                }
+                using var stream = await file.OpenStreamForWriteAsync();
+                stream.Position = 0;
+                using StreamWriter writer = new(stream);
+                await writer.WriteAsync(
+                    new JsonObject()
+                    {
+                    { "Type", JsonValue.CreateStringValue("LayerContainer") },
+                    { "Layers", jsonArr }
+                    }.ToString()
+                );
+            } else if (e.Key == Windows.System.VirtualKey.O)
+            {
+                var filePicker = new FileOpenPicker()
+                {
+                    FileTypeFilter = { ".wdii" }
+                };
+                var file = await filePicker.PickSingleFileAsync();
+                if (file is null) return;
+                var or = await file.OpenReadAsync();
+                using var reader = new StreamReader(or.AsStream());
+                var json = JsonObject.Parse(await reader.ReadToEndAsync());
+                Layers.Clear();
+                foreach (var ele in json["Layers"].GetArray())
+                {
+                    var layer = ele.GetObject();
+                    if (layer["LayerType"].GetString() is "Ink")
+                    {
+                        using var ms = new MemoryStream();
+                        var bytes = Convert.FromBase64String(layer["InkData"].GetString());
+                        await ms.WriteAsync(bytes, 0, bytes.Length);
+                        ms.Position = 0;
+                        var inkCanvas = new WXInkCanvas(UndoManager);
+                        await inkCanvas.InkPresenter.StrokeContainer.LoadAsync(ms.AsRandomAccessStream());
+                        Layers.Add(inkCanvas);
+                    }
+                }
+                UndoManager.Clear();
+                SelectedIndexProperty.Value = 0;
             }
         };
     }

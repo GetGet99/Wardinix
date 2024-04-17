@@ -51,7 +51,7 @@ abstract class UpdateCollectionModelLinker<TSource, TDest> : IDisposable
                     }
                     break;
                 case ItemsRemovedUpdateAction<TSource> removed:
-                    if (SourceUpdateCollection.Count - removed.Items.Count != DestinationList.Count)
+                    if (SourceUpdateCollection.Count + removed.Items.Count != DestinationList.Count)
                         goto Reset;
                     for (int i = 0; i < removed.Items.Count; i++)
                     {
@@ -156,7 +156,11 @@ abstract class UpdateCollectionModelLinker<TSource, TDest> : IDisposable
             InplaceUpdate(i++);
         }
         while (i < DestinationList.Count)
-            MarkedRemovedFromDestination(DestinationList[i++]);
+        {
+            var ele = DestinationList[i];
+            DestinationList.RemoveAt(i);
+            MarkedRemovedFromDestination(ele);
+        }
         while (i < SourceUpdateCollection.Count)
             DestinationList.Add(GetNewDest(SourceUpdateCollection[i++]));
 
