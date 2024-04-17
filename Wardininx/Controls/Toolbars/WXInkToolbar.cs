@@ -14,6 +14,7 @@ using Get.Symbols;
 using Get.Data.Collections;
 using Windows.UI.ViewManagement;
 using Get.Data.Collections.Update;
+using Get.Data.Bindings.Linq;
 namespace Wardininx.Controls.Toolbars;
 
 class WXInkToolbar : AbstractedUI
@@ -24,12 +25,12 @@ class WXInkToolbar : AbstractedUI
     {
         Parent = parent;
         PenColorProperty.Bind(
-            Binding<Color>.Create(FavoritePenColors, PenColorIndexProperty),
-            BindingModes.OneWay
+            FavoritePenColors.ElementAt(PenColorIndexProperty),
+            ReadOnlyBindingModes.OneWay
         );
         HighlighterColorProperty.Bind(
-            Binding<Color>.Create(FavoriteHighlighterColors, HighlighterColorIndexProperty),
-            BindingModes.OneWay
+            FavoriteHighlighterColors.ElementAt(HighlighterColorIndexProperty),
+            ReadOnlyBindingModes.OneWay
         );
         //PenSizeProperty.Bind(
         //    Binding<double>.Create(FavoritePenSizes, PenSizeIndexProperty),
@@ -208,7 +209,7 @@ class WXInkToolbarUI : WXControl
                         {
                             PropertyDefinition.CreateExpr<Button, Color>(
                                 _ => brush.Color, (_, val) => brush.Color = brush2.Color = brush3.Color = val
-                            ), rootColor.To(x => x.IndexItemBinding).WithForwardConverter(x => x.Value)
+                            ), rootColor.SelectPath(x => x.IndexItemBinding).Select(x => x.Value)
                         }
                     })
                     .WithCustomCode(
@@ -306,7 +307,7 @@ class WXInkToolbarUI : WXControl
                         {
                             {
                                 VisibilityProperty.AsPropertyDefinition<FrameworkElement, Visibility>(),
-                                Abstracted.EditingModeProperty.ToBinding().WithForwardConverter(
+                                Abstracted.EditingModeProperty.Select(
                                     x => x is not WXInkToolbar.EditingModes.Highlighter ?
                                     Visibility.Visible : Visibility.Collapsed
                                 )
@@ -318,7 +319,7 @@ class WXInkToolbarUI : WXControl
                         {
                             {
                                 VisibilityProperty.AsPropertyDefinition<FrameworkElement, Visibility>(),
-                                Abstracted.EditingModeProperty.ToBinding().WithForwardConverter(
+                                Abstracted.EditingModeProperty.Select(
                                     x => x is WXInkToolbar.EditingModes.Highlighter ?
                                     Visibility.Visible : Visibility.Collapsed
                                 )

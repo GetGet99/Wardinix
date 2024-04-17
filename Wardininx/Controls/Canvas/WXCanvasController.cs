@@ -1,6 +1,7 @@
 using Get.Data.Collections;
 using Get.Data.Collections.Update;
 using Get.Data.Collections.Linq;
+using Get.Data.Bindings.Linq;
 using Get.Data.Helpers;
 using Get.Data.Properties;
 using Get.Data.XACL;
@@ -13,6 +14,7 @@ using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
 using Windows.UI.Xaml.Media;
+using Get.Data.Bindings;
 
 namespace Wardininx.Controls.Canvas;
 class WXCanvasController : AbstractedUI
@@ -80,15 +82,15 @@ partial class WXCanvasControllerUI : Control
     {
         var gui = (UserControl)GetTemplateChild(App.GUIRootName);
         ElementInteractionTracker interactionTracker = null;
-        var boundsBinding = CanvasBoundsWriter.ToBinding();
-        var actualSizeBinding = ActualSizeProperty.ToBinding();
-        var viewOffsetBinding = Abstracted.CanvasScrollOffsetProperty.ToBinding();
-        var scaleBinding = Abstracted.CanvasScaleProperty.ToBinding();
-        var actualVirtualSizeBinding = actualSizeBinding.Combine(scaleBinding, (x, y) => x); // x / y
+        var boundsBinding = CanvasBoundsWriter;
+        var actualSizeBinding = (IBinding<Vector2>)ActualSizeProperty;
+        var viewOffsetBinding = (IBinding<Vector3>)Abstracted.CanvasScrollOffsetProperty;
+        var scaleBinding = (IBinding<float>)Abstracted.CanvasScaleProperty;
+        var actualVirtualSizeBinding = actualSizeBinding.Zip(scaleBinding, (x, y) => x); // x / y
         var visibleRectRegionBinding =
             boundsBinding
-            .WithForwardConverter(x => x.Width == 0 && x.Height == 0 ? new Rect(-0.5, -0.5, 1, 1) : x)
-            .Combine<Vector2, Rect>(
+            .Select(x => x.Width == 0 && x.Height == 0 ? new Rect(-0.5, -0.5, 1, 1) : x)
+            .Zip<Rect, Vector2, Rect>(
             actualVirtualSizeBinding,
             (bounds, size) => new(Math.Max(-WXInkCanvas.RealCanvasSize / 2, bounds.Left - size.X), Math.Max(-WXInkCanvas.RealCanvasSize / 2, bounds.Top - size.Y), bounds.Width + size.X * 2, bounds.Height + size.Y * 2)
         );
@@ -112,11 +114,11 @@ partial class WXCanvasControllerUI : Control
                     {
                         {
                             WXCanvasControl.CanvasScrollOffsetPropertyDefinition.As<WXCanvasCollectionControl>(),
-                            viewOffsetBinding.WithForwardConverter(x => -x)
+                            viewOffsetBinding.Select(x => -x)
                         },
                         {
                             WXCanvasControl.CanvasScalePropertyDefinition.As<WXCanvasCollectionControl>(),
-                            scaleBinding.WithForwardConverter(x => new Vector3(x, x, 0))
+                            scaleBinding.Select(x => new Vector3(x, x, 0))
                         }
                     }
                 }).UnsafeGetElement<UIElement>(),
@@ -129,14 +131,14 @@ partial class WXCanvasControllerUI : Control
                 {
                     OneWay =
                     {
-                        { ScrollBarMinimumProperty, visibleRectRegionBinding.WithForwardConverter(x => x.Top) },
-                        { ScrollBarMaximumProperty, visibleRectRegionBinding.WithForwardConverter(x => x.Bottom) },
-                        { ScrollBarViewportSizeProperty, actualSizeBinding.WithForwardConverter<double>(size => size.Y) }
+                        { ScrollBarMinimumProperty, visibleRectRegionBinding.Select(x => x.Top) },
+                        { ScrollBarMaximumProperty, visibleRectRegionBinding.Select(x => x.Bottom) },
+                        { ScrollBarViewportSizeProperty, actualSizeBinding.Select(size => (double)size.Y) }
                     },
                     TwoWay =
                     {
                         { ScrollBarValueProperty, viewOffsetBinding
-                            .WithConverter<double>(pos => pos.Y, (y, old) => new(old.X, (float)y, old.Z))
+                            .Select(pos => (double)pos.Y, (y, old) => new(old.X, (float)y, old.Z))
                             .AllowWritebackWhen(() => !interactionTracker.IsInertiaOrInteracting)
                         }
                     }
@@ -152,14 +154,14 @@ partial class WXCanvasControllerUI : Control
                 {
                     OneWay =
                     {
-                        { ScrollBarMinimumProperty, visibleRectRegionBinding.WithForwardConverter(x => x.Left) },
-                        { ScrollBarMaximumProperty, visibleRectRegionBinding.WithForwardConverter(x => x.Right) },
-                        { ScrollBarViewportSizeProperty, actualSizeBinding.WithForwardConverter<double>(size => size.X) },
+                        { ScrollBarMinimumProperty, visibleRectRegionBinding.Select(x => x.Left) },
+                        { ScrollBarMaximumProperty, visibleRectRegionBinding.Select(x => x.Right) },
+                        { ScrollBarViewportSizeProperty, actualSizeBinding.Select(size => (double)size.X) },
                     },
                     TwoWay =
                     {
                         { ScrollBarValueProperty, viewOffsetBinding
-                            .WithConverter<double>(pos => pos.X, (x, old) => new((float)x, old.Y, old.Z))
+                            .Select(pos => (double)pos.X, (x, old) => new((float)x, old.Y, old.Z))
                             .AllowWritebackWhen(() => !interactionTracker.IsInertiaOrInteracting)
                         }
                     }

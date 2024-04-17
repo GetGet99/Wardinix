@@ -11,7 +11,8 @@ using Windows.UI.Xaml.Media;
 using Get.Symbols;
 using Windows.UI;
 using Get.Data.Collections.Update;
-using Get.Data.Collections;
+using Get.Data.Bindings.Linq;
+using System.Diagnostics;
 namespace Wardininx.Controls.Toolbars;
 
 class WXLayerToolbar : AbstractedUI
@@ -91,7 +92,7 @@ class WXLayerToolbarUI : WXControl
                                 {
                                     {
                                         ContentControl.ContentProperty.AsPropertyDefinition<Button, object>(),
-                                        root.To(x => x.IndexItemBinding).WithForwardConverter(x => (object)(x.Index + 1))
+                                        root.SelectPath(x => x.IndexItemBinding).Select(x => (object)(x.Index + 1))
                                     }
                                 }
                             }

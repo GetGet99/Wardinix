@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Numerics;
-using Wardininx.Controls.Canvas;
 using Wardininx.UndoRedos;
 using Windows.Foundation;
 using Windows.UI.Input.Inking;

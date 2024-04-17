@@ -28,7 +28,7 @@ class WXContentControl<T> : WXControl
                 old.NotifyRecycle(_generatedValue);
             if (@new is not null && TemplatedParent is not null)
                 TemplatedParent.Content =
-                    (_generatedValue = @new.Generate(ContentProperty.ToBinding()))
+                    (_generatedValue = @new.Generate(ContentProperty))
                     .GeneratedValue;
         };
     }
@@ -39,7 +39,7 @@ class WXContentControl<T> : WXControl
         TemplatedParent = (UserControl)GetTemplateChild(App.GUIRootName);
         if (ContentTemplate is not null)
             TemplatedParent.Content =
-                (_generatedValue = ContentTemplate.Generate(ContentProperty.ToBinding()))
+                (_generatedValue = ContentTemplate.Generate(ContentProperty))
                 .GeneratedValue;
     }
 }

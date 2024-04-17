@@ -1,18 +1,30 @@
 ﻿using Get.Data.Bindings;
 using System.Runtime.CompilerServices;
+using Windows.UI.Xaml.Data;
 
 namespace Get.Data.Properties;
 
 public delegate void ValueChangingHandler<T>(T oldValue, T newValue);
 public delegate void ValueChangedHandler<T>(T oldValue, T newValue);
-public abstract class PropertyBase<T>
+public abstract class PropertyBase<T> : IBinding<T>
 {
     public abstract T Value { get; set; }
+    T IDataBinding<T>.CurrentValue { get => Value; set => Value = value; }
+
+    T IReadOnlyDataBinding<T>.CurrentValue => Value;
+
     public abstract event ValueChangingHandler<T>? ValueChanging;
     public abstract event ValueChangedHandler<T>? ValueChanged;
-    Binding<T>? currentBinding;
-    public Binding<T> ToBinding() => Binding<T>.Create(this);
-    public void Bind(Binding<T> binding, BindingModes bindingMode)
+    IReadOnlyBinding<T>? currentBinding;
+
+    // RootChanged event will never be sent
+    event Action INotifyBinding<T>.RootChanged
+    {
+        add { }
+        remove { }
+    }
+
+    public void Bind(IReadOnlyBinding<T> binding, ReadOnlyBindingModes bindingMode)
     {
         if (currentBinding is not null)
         {
@@ -22,20 +34,32 @@ public abstract class PropertyBase<T>
         currentBinding = binding;
         switch (bindingMode)
         {
-            case BindingModes.OneTime:
+            case ReadOnlyBindingModes.OneTime:
                 Value = currentBinding.CurrentValue;
                 currentBinding.RootChanged += BindingRootChanged;
                 break;
-            case BindingModes.OneWayToTarget:
+            case ReadOnlyBindingModes.OneWayToTarget:
                 Value = currentBinding.CurrentValue;
                 currentBinding.ValueChanged += SourceBindingValueChanged;
                 break;
+        }
+    }
+    public void Bind(IBinding<T> binding, BindingModes bindingMode)
+    {
+        if (currentBinding is not null)
+        {
+            ValueChanged -= ValueChangedToSourceBinding;
+            currentBinding.ValueChanged -= SourceBindingValueChanged;
+        }
+        currentBinding = binding;
+        switch (bindingMode)
+        {
             case BindingModes.OneWayToSource:
-                currentBinding.CurrentValue = Value;
+                binding.CurrentValue = Value;
                 ValueChanged += ValueChangedToSourceBinding;
                 break;
             case BindingModes.TwoWayUpdateSourceImmediete:
-                currentBinding.CurrentValue = Value;
+                binding.CurrentValue = Value;
                 ValueChanged += ValueChangedToSourceBinding;
                 currentBinding.ValueChanged += SourceBindingValueChanged;
                 break;
@@ -59,10 +83,9 @@ public abstract class PropertyBase<T>
     }
     void ValueChangedToSourceBinding(T oldVal, T newVal)
     {
-        if (currentBinding != null)
-            currentBinding.CurrentValue = newVal;
+        if (currentBinding != null && currentBinding is IBinding<T> readWriteBinding)
+            readWriteBinding.CurrentValue = newVal;
     }
-    public static implicit operator Binding<T>(PropertyBase<T> prop) => prop.ToBinding();
 }
 public class ReadOnlyProperty<T>(PropertyBase<T> prop) : PropertyBase<T>
 {

@@ -13,7 +13,7 @@ public class DataTemplate<TSrc, TOut>(DataTemplateDefinition<TSrc, TOut> Templat
 {
     readonly internal DataTemplateDefinition<TSrc, TOut> TemplateDefinition = TemplateDefinition;
     readonly Queue<DataTemplateGeneratedValue<TSrc, TOut>> recycledQueue = new();
-    public DataTemplateGeneratedValue<TSrc, TOut> Generate(Binding<TSrc> source)
+    public DataTemplateGeneratedValue<TSrc, TOut> Generate(IReadOnlyBinding<TSrc> source)
         => new(this, source);
     public DataTemplateGeneratedValue<TSrc, TOut> Generate(TSrc source)
         => new(this, new ValueBinding<TSrc>(source));
@@ -24,7 +24,7 @@ public class DataTemplate<TSrc, TOut>(DataTemplateDefinition<TSrc, TOut> Templat
 }
 public class DataTemplateGeneratedValue<TSrc, TOut>
 {
-    internal DataTemplateGeneratedValue(DataTemplate<TSrc, TOut> Template, Binding<TSrc> binding)
+    internal DataTemplateGeneratedValue(DataTemplate<TSrc, TOut> Template, IReadOnlyBinding<TSrc> binding)
     {
         this.Template = Template;
         DataRoot = new(binding);
@@ -36,7 +36,7 @@ public class DataTemplateGeneratedValue<TSrc, TOut>
         DataRoot = dataRoot;
         GeneratedValue = value;
     }
-    public Binding<TSrc> Binding { get => DataRoot.ParentBinding; set => DataRoot.ParentBinding = value; }
+    public IReadOnlyBinding<TSrc> Binding { get => DataRoot.ParentBinding; set => DataRoot.ParentBinding = value; }
     public DataTemplate<TSrc, TOut> Template { get; }
     public TOut GeneratedValue { get; private set; }
     internal readonly RootBinding<TSrc> DataRoot;

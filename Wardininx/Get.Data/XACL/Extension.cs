@@ -72,15 +72,15 @@ public static class XACLExtension
         return src;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TSrc WithOneWayBinding<TSrc>(this TSrc src, GenericBindingKinds<TSrc> Binding)
+    public static TSrc WithOneWayBinding<TSrc>(this TSrc src, GenericReadOnlyBindingKinds<TSrc> Binding)
     {
-        Binding.ApplyTo(src, BindingModes.OneWay);
+        Binding.ApplyTo(src, ReadOnlyBindingModes.OneWay);
         return src;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TSrc WithOneTimeBinding<TSrc>(this TSrc src, GenericBindingKinds<TSrc> Binding)
+    public static TSrc WithOneTimeBinding<TSrc>(this TSrc src, GenericReadOnlyBindingKinds<TSrc> Binding)
     {
-        Binding.ApplyTo(src, BindingModes.OneTime);
+        Binding.ApplyTo(src, ReadOnlyBindingModes.OneTime);
         return src;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -96,9 +96,9 @@ public static class XACLExtension
         return src;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TSrc WithOneWayToTargetBinding<TSrc>(this TSrc src, GenericBindingKinds<TSrc> Binding)
+    public static TSrc WithOneWayToTargetBinding<TSrc>(this TSrc src, GenericReadOnlyBindingKinds<TSrc> Binding)
     {
-        Binding.ApplyTo(src, BindingModes.OneWayToTarget);
+        Binding.ApplyTo(src, ReadOnlyBindingModes.OneWayToTarget);
         return src;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -114,43 +114,43 @@ public static class XACLExtension
         return src;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TSrc WithOneWayBinding<TSrc, TProp>(this TSrc src, PropertyDefinitionBase<TSrc, TProp> srcPropDef, Binding<TProp> binding)
+    public static TSrc WithOneWayBinding<TSrc, TProp>(this TSrc src, PropertyDefinitionBase<TSrc, TProp> srcPropDef, IReadOnlyBinding<TProp> binding)
     {
-        srcPropDef.GetProperty(src).Bind(binding, BindingModes.OneWay);
+        srcPropDef.GetProperty(src).Bind(binding, ReadOnlyBindingModes.OneWay);
         return src;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TSrc WithOneTimeBinding<TSrc, TProp>(this TSrc src, PropertyDefinitionBase<TSrc, TProp> srcPropDef, Binding<TProp> binding)
+    public static TSrc WithOneTimeBinding<TSrc, TProp>(this TSrc src, PropertyDefinitionBase<TSrc, TProp> srcPropDef, IReadOnlyBinding<TProp> binding)
     {
-        srcPropDef.GetProperty(src).Bind(binding, BindingModes.OneTime);
+        srcPropDef.GetProperty(src).Bind(binding, ReadOnlyBindingModes.OneTime);
         return src;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TSrc WithTwoWayBinding<TSrc, TProp>(this TSrc src, PropertyDefinitionBase<TSrc, TProp> srcPropDef, Binding<TProp> binding)
+    public static TSrc WithTwoWayBinding<TSrc, TProp>(this TSrc src, PropertyDefinitionBase<TSrc, TProp> srcPropDef, IBinding<TProp> binding)
     {
         srcPropDef.GetProperty(src).Bind(binding, BindingModes.TwoWay);
         return src;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TSrc WithOneWayToSourceBinding<TSrc, TProp>(this TSrc src, PropertyDefinitionBase<TSrc, TProp> srcPropDef, Binding<TProp> binding)
+    public static TSrc WithOneWayToSourceBinding<TSrc, TProp>(this TSrc src, PropertyDefinitionBase<TSrc, TProp> srcPropDef, IBinding<TProp> binding)
     {
         srcPropDef.GetProperty(src).Bind(binding, BindingModes.OneWayToSource);
         return src;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TSrc WithOneWayToTargetBinding<TSrc, TProp>(this TSrc src, PropertyDefinitionBase<TSrc, TProp> srcPropDef, Binding<TProp> binding)
+    public static TSrc WithOneWayToTargetBinding<TSrc, TProp>(this TSrc src, PropertyDefinitionBase<TSrc, TProp> srcPropDef, IReadOnlyBinding<TProp> binding)
     {
-        srcPropDef.GetProperty(src).Bind(binding, BindingModes.OneWayToTarget);
+        srcPropDef.GetProperty(src).Bind(binding, ReadOnlyBindingModes.OneWayToTarget);
         return src;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TSrc WithTwoWayUpdateTargetImmedieteBinding<TSrc, TProp>(this TSrc src, PropertyDefinitionBase<TSrc, TProp> srcPropDef, Binding<TProp> binding)
+    public static TSrc WithTwoWayUpdateTargetImmedieteBinding<TSrc, TProp>(this TSrc src, PropertyDefinitionBase<TSrc, TProp> srcPropDef, IBinding<TProp> binding)
     {
         srcPropDef.GetProperty(src).Bind(binding, BindingModes.TwoWayUpdateTargetImmediete);
         return src;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TSrc WithTwoWayUpdateSourceImmedieteBinding<TSrc, TProp>(this TSrc src, PropertyDefinitionBase<TSrc, TProp> srcPropDef, Binding<TProp> binding)
+    public static TSrc WithTwoWayUpdateSourceImmedieteBinding<TSrc, TProp>(this TSrc src, PropertyDefinitionBase<TSrc, TProp> srcPropDef, IBinding<TProp> binding)
     {
         srcPropDef.GetProperty(src).Bind(binding, BindingModes.TwoWayUpdateSourceImmediete);
         return src;
@@ -170,10 +170,11 @@ public class XACLSyntaxHelper<TSrc>(TSrc src)
 }
 public class XACLBindings<TOwner>
 {
-    BindingKinds<TOwner>? oneTime, oneWay, oneWayToSource, twoWay, twoWayUpdateSourceImmediete;
-    public BindingKinds<TOwner> OneTime => oneTime ??= new(BindingModes.OneTime);
-    public BindingKinds<TOwner> OneWay => oneWay ??= new(BindingModes.OneWay);
-    public BindingKinds<TOwner> OneWayToTarget => OneWay;
+    ReadOnlyBindingKinds<TOwner>? oneTime, oneWay;
+    BindingKinds<TOwner>? oneWayToSource, twoWay, twoWayUpdateSourceImmediete;
+    public ReadOnlyBindingKinds<TOwner> OneTime => oneTime ??= new(ReadOnlyBindingModes.OneTime);
+    public ReadOnlyBindingKinds<TOwner> OneWay => oneWay ??= new(ReadOnlyBindingModes.OneWay);
+    public ReadOnlyBindingKinds<TOwner> OneWayToTarget => OneWay;
     public BindingKinds<TOwner> OneWayToSource => oneWayToSource ??= new(BindingModes.OneWayToSource);
     public BindingKinds<TOwner> TwoWay => twoWay ??= new(BindingModes.TwoWay);
     public BindingKinds<TOwner> TwoWayUpdateTargetImmediete => TwoWay;
@@ -190,7 +191,21 @@ public class XACLBindings<TOwner>
 public class BindingKinds<TOwner>(BindingModes bindingModes) : IEnumerable
 {
     Action<TOwner>? setBinding;
-    public void Add<TProp>(PropertyDefinitionBase<TOwner, TProp> propertyDefinition, Binding<TProp> binding)
+    public void Add<TProp>(PropertyDefinitionBase<TOwner, TProp> propertyDefinition, IBinding<TProp> binding)
+    {
+        setBinding += x => propertyDefinition.GetProperty(x).Bind(binding, bindingModes);
+    }
+    public void ApplyTo(TOwner owner) => setBinding?.Invoke(owner);
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        throw new InvalidOperationException($"{nameof(IEnumerable.GetEnumerator)} is not implemented because BindingKinds is not supposed to be used as collection. We just implement so C# syntax sugar works");
+    }
+}
+public class ReadOnlyBindingKinds<TOwner>(ReadOnlyBindingModes bindingModes) : IEnumerable
+{
+    Action<TOwner>? setBinding;
+    public void Add<TProp>(PropertyDefinitionBase<TOwner, TProp> propertyDefinition, IReadOnlyBinding<TProp> binding)
     {
         setBinding += x => propertyDefinition.GetProperty(x).Bind(binding, bindingModes);
     }
@@ -205,7 +220,7 @@ public class GenericBindingKinds<TOwner> : IEnumerable
 {
     Action<TOwner, BindingModes>? setBinding;
 
-    public void Add<TProp>(PropertyDefinitionBase<TOwner, TProp> propertyDefinition, Binding<TProp> binding)
+    public void Add<TProp>(PropertyDefinitionBase<TOwner, TProp> propertyDefinition, IBinding<TProp> binding)
     {
         setBinding += (x, bm) =>
         {
@@ -213,6 +228,24 @@ public class GenericBindingKinds<TOwner> : IEnumerable
         };
     }
     public void ApplyTo(TOwner owner, BindingModes bindingModes) => setBinding?.Invoke(owner, bindingModes);
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        throw new InvalidOperationException($"{nameof(IEnumerable.GetEnumerator)} is not implemented because BindingKinds is not supposed to be used as collection. We just implement so C# syntax sugar works");
+    }
+}
+public class GenericReadOnlyBindingKinds<TOwner> : IEnumerable
+{
+    Action<TOwner, ReadOnlyBindingModes>? setBinding;
+
+    public void Add<TProp>(PropertyDefinitionBase<TOwner, TProp> propertyDefinition, IReadOnlyBinding<TProp> binding)
+    {
+        setBinding += (x, bm) =>
+        {
+            propertyDefinition.GetProperty(x).Bind(binding, bm);
+        };
+    }
+    public void ApplyTo(TOwner owner, ReadOnlyBindingModes bindingModes) => setBinding?.Invoke(owner, bindingModes);
 
     IEnumerator IEnumerable.GetEnumerator()
     {

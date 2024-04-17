@@ -1,9 +1,9 @@
-﻿using System.Numerics;
-using Windows.UI.Composition.Interactions;
-
-namespace Get.Data.Properties;
-
-public abstract class PropertyDefinitionBase<TOwnerType, TPropertyType>
+﻿namespace Get.Data.Properties;
+public interface IPropertyDefinition<TOwnerType, TPropertyType>
+{
+    PropertyBase<TPropertyType> GetProperty(TOwnerType owner);
+}
+public abstract class PropertyDefinitionBase<TOwnerType, TPropertyType> : IPropertyDefinition<TOwnerType, TPropertyType>
 {
     public abstract PropertyBase<TPropertyType> GetProperty(TOwnerType owner);
 

@@ -33,7 +33,7 @@ public class UpdateCollection<T> : IUpdateCollection<T>
     public void Insert(int index, T item)
     {
         list.Insert(index, item);
-        ItemsChanged?.Invoke([new ItemsAddedUpdateAction<T>(0, Collection.Single(item))]);
+        ItemsChanged?.Invoke([new ItemsAddedUpdateAction<T>(index, Collection.Single(item))]);
     }
 
     public void Move(int index1, int index2)

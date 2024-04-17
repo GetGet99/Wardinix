@@ -9,6 +9,7 @@ using Get.Data;
 using System.Reflection;
 using Get.Data.Collections.Linq;
 using Get.Data.Collections.Conversion;
+using Get.Data.Bindings.Linq;
 
 namespace Wardininx.Controls;
 abstract class WXItemsControlBase<T, TTemplate> : WXControl where TTemplate : class
@@ -54,12 +55,12 @@ class WXItemsControl<T>(UIElement element, IList<UIElement> children) : WXItemsC
         => collection.Bind(@out.AsGDCollection(), dataTemplate);
 }
 
-class WXSelectableItem<T>(Binding<IndexItem<T>> itemBinding, WXSelectableItemsControl<T> source)
+class WXSelectableItem<T>(IReadOnlyBinding<IndexItem<T>> itemBinding, WXSelectableItemsControl<T> source)
 {
-    public Binding<IndexItem<T>> IndexItemBinding { get; } = itemBinding;
-    public Binding<bool> IsSelected { get; } =
-        source.SelectedIndexProperty.ToBinding().Combine(itemBinding, (x, item) => item.Index == x,
-            delegate (bool output, ref int srcSelectedIdx, ref IndexItem<T> curItemIdx)
+    public IReadOnlyBinding<IndexItem<T>> IndexItemBinding { get; } = itemBinding;
+    public IBinding<bool> IsSelected { get; } =
+        source.SelectedIndexProperty.Zip(itemBinding, (x, item) => item.Index == x,
+            delegate (bool output, ref int srcSelectedIdx, IndexItem<T> curItemIdx)
             {
                 if (output && srcSelectedIdx != curItemIdx.Index)
                 {

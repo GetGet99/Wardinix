@@ -4,6 +4,7 @@ using Windows.UI.Xaml.Controls;
 using Wardininx.UndoRedos;
 using Get.Data.Bindings;
 using Wardininx.Controls.Canvas;
+using Get.Data.Bindings.Linq;
 namespace Wardininx.Controls.Toolbars;
 
 class WXToolbar : AbstractedUI
@@ -17,9 +18,9 @@ class WXToolbar : AbstractedUI
         InkToolbar = new(this);
         LayerToolbar = new(this);
         InkToolbar.InkControllerProperty.Bind(
-            Binding<WXCanvasControl>.Create(LayerToolbar.LayersProperty, LayerToolbar.SelectedIndexProperty)
-            .WithForwardConverter(x => (x as WXInkCanvas)?.InkController),
-            BindingModes.OneWay
+            LayerToolbar.LayersProperty.ElementAt(LayerToolbar.SelectedIndexProperty)
+            .Select(x => (x as WXInkCanvas)?.InkController),
+            ReadOnlyBindingModes.OneWay
         );
     }
     protected override UIElement CreateUI() => new WXToolbarUI(this);
