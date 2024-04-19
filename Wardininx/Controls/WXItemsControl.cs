@@ -146,7 +146,7 @@ class WXSelectableItemsControl<T> : WXItemsControlBase<T, DataTemplate<WXSelecta
         tempCollection.Clear();
         var a = collection.AsUpdateReadOnly().WithIndex().Bind(tempCollection, new(root => new(root, this)));
         var b = tempCollection.Bind(@out, dataTemplate);
-        return new Get.Data.Bindings.Disposable(() =>
+        return new Disposable(() =>
         {
             a.Dispose();
             b.Dispose();
