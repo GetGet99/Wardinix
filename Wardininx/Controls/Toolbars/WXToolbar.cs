@@ -12,11 +12,13 @@ class WXToolbar : AbstractedUI
     public UndoManager UndoManager { get; }
     public WXInkToolbar InkToolbar { get; }
     public WXLayerToolbar LayerToolbar { get; }
+    public WXUndoRedoToolbar UndoRedoToolbar { get; }
     public WXToolbar(UndoManager undoManager)
     {
         UndoManager = undoManager;
         InkToolbar = new(this);
         LayerToolbar = new(this);
+        UndoRedoToolbar = new(undoManager);
         InkToolbar.InkControllerProperty.Bind(
             LayerToolbar.LayersProperty.ElementAt(LayerToolbar.SelectedIndexProperty)
             .Select(x => (x as WXInkCanvas)?.InkController),
@@ -43,7 +45,8 @@ class WXToolbarUI : WXControl
             Children =
             {
                 Abstracted.InkToolbar.UnsafeGetElement<UIElement>(),
-                Abstracted.LayerToolbar.UnsafeGetElement<UIElement>()
+                Abstracted.LayerToolbar.UnsafeGetElement<UIElement>(),
+                Abstracted.UndoRedoToolbar.UnsafeGetElement<UIElement>()
             }
         };
     }

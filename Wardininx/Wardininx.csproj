@@ -135,6 +135,7 @@
     <Compile Include="Controls\Canvas\WXCanvasControl.cs" />
     <Compile Include="Controls\Canvas\WXCanvasController.cs" />
     <Compile Include="Controls\FrameworkElementProperties.cs" />
+    <Compile Include="Controls\Toolbars\WXUndoRedoToolbar.cs" />
     <Compile Include="Controls\Toolbars\WXInkToolbar.cs" />
     <Compile Include="Controls\Toolbars\WXLayerToolbar.cs" />
     <Compile Include="Controls\WXItemsControl.cs" />
@@ -144,6 +145,7 @@
     <Compile Include="Disposable.cs" />
     <Compile Include="Get.Data.UWP.cs" />
     <Compile Include="GlobalUsings.cs" />
+    <Compile Include="GlobalUsings.Get.Data.cs" />
     <Compile Include="Helpers\ElementInteractionTracker.cs" />
     <Compile Include="Helpers\InkRef.cs" />
     <Compile Include="Helpers\MicaBrush.cs" />

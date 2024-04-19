@@ -286,22 +286,14 @@ class WXInkToolbarUI : WXControl
                         .WithCustomCode(x => SetupButton(x, WXInkToolbar.EditingModes.Highlighter)),
                         new Button() { Content = new SymbolExIcons(SymbolEx.StrokeErase).Build() }
                         .WithCustomCode(x => SetupButton(x, WXInkToolbar.EditingModes.Eraser)),
-                        new Button() { Content = new SymbolExIcons(SymbolEx.Ruler).Build() }
-                        .WithCustomCode(x => x.Click += delegate
-                        {
-                            if (Abstracted.InkController is not null)
-                                Abstracted.InkController.IsRulerVisible = !Abstracted.InkController.IsRulerVisible;
-                        }),
+                        //new Button() { Content = new SymbolExIcons(SymbolEx.Ruler).Build() }
+                        //.WithCustomCode(x => x.Click += delegate
+                        //{
+                        //    if (Abstracted.InkController is not null)
+                        //        Abstracted.InkController.IsRulerVisible = !Abstracted.InkController.IsRulerVisible;
+                        //}),
                         //new Button() { Content = "L" }.WithCustomCode(x => x.Click += (_, _) => Abstracted.EditingMode = WXInkToolbar.EditingModes.LassoSelect),
                         //new Button() { Content = "R" }.WithCustomCode(x => x.Click += (_, _) => Abstracted.EditingMode = WXInkToolbar.EditingModes.RectSelect),
-                        new Button() { Content = new SymbolExIcons(SymbolEx.Undo).Build() }.WithCustomCode(x => x.Click += (_, _) => Abstracted.Parent.UndoManager.Undo())
-                        .WithOneWayBinding(new() {
-                            { IsEnabledProperty.AsPropertyDefinition<Button, bool>(), Abstracted.Parent.UndoManager.IsUndoableProperty }
-                        }),
-                        new Button() { Content = new SymbolExIcons(SymbolEx.Redo).Build() }.WithCustomCode(x => x.Click += (_, _) => Abstracted.Parent.UndoManager.Redo())
-                        .WithOneWayBinding(new() {
-                            { IsEnabledProperty.AsPropertyDefinition<Button, bool>(), Abstracted.Parent.UndoManager.IsRedoableProperty }
-                        }),
                         CreateColorPickerUI(Abstracted.FavoritePenColors, Abstracted.PenColorIndexProperty)
                         .WithOneWayBinding(new()
                         {
