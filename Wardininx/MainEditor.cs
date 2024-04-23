@@ -3,6 +3,7 @@ using Get.Data.Helpers;
 using Get.Data.Properties;
 using Get.Data.XACL;
 using System.Text;
+using Wardininx.Classes;
 using Wardininx.Controls.Canvas;
 using Wardininx.Controls.Toolbars;
 using Wardininx.UndoRedos;
@@ -63,15 +64,28 @@ class MainEditor : UserControl
                 var jsonArr = new JsonArray();
                 foreach (var layer in Layers)
                 {
-                    if (layer is WXInkCanvas inkCanvas)
+                    switch (layer)
                     {
-                        using var ms = new MemoryStream();
-                        await inkCanvas.InkPresenter.StrokeContainer.SaveAsync(ms.AsRandomAccessStream());
-                        jsonArr.Add(new JsonObject
-                    {
-                        { "LayerType", JsonValue.CreateStringValue("Ink") },
-                        { "InkData", JsonValue.CreateStringValue(Convert.ToBase64String(ms.ToArray())) }
-                    });
+                        case WXInkCanvas inkCanvas:
+                            {
+                                using var ms = new MemoryStream();
+                                await inkCanvas.InkPresenter.StrokeContainer.SaveAsync(ms.AsRandomAccessStream());
+                                jsonArr.Add(new JsonObject
+                                {
+                                    { "LayerType", JsonValue.CreateStringValue("Ink") },
+                                    { "InkData", JsonValue.CreateStringValue(Convert.ToBase64String(ms.ToArray())) }
+                                });
+                            }
+                            break;
+                        case WXImageCanvas imageCanvas:
+                            {
+                                jsonArr.Add(new JsonObject
+                                {
+                                    { "LayerType", JsonValue.CreateStringValue("Image") },
+                                    { "ImageData", JsonValue.CreateStringValue(Convert.ToBase64String(imageCanvas.Image.ToBytes())) }
+                                });
+                            }
+                            break;
                     }
                 }
                 using var stream = await file.OpenStreamForWriteAsync();
@@ -84,7 +98,8 @@ class MainEditor : UserControl
                     { "Layers", jsonArr }
                     }.ToString()
                 );
-            } else if (e.Key == Windows.System.VirtualKey.O)
+            }
+            else if (e.Key == Windows.System.VirtualKey.O)
             {
                 var filePicker = new FileOpenPicker()
                 {
@@ -99,19 +114,79 @@ class MainEditor : UserControl
                 foreach (var ele in json["Layers"].GetArray())
                 {
                     var layer = ele.GetObject();
-                    if (layer["LayerType"].GetString() is "Ink")
+                    switch (layer["LayerType"].GetString())
                     {
-                        using var ms = new MemoryStream();
-                        var bytes = Convert.FromBase64String(layer["InkData"].GetString());
-                        await ms.WriteAsync(bytes, 0, bytes.Length);
-                        ms.Position = 0;
-                        var inkCanvas = new WXInkCanvas(UndoManager);
-                        await inkCanvas.InkPresenter.StrokeContainer.LoadAsync(ms.AsRandomAccessStream());
-                        Layers.Add(inkCanvas);
+                        case "Ink":
+                            {
+                                using var ms = new MemoryStream();
+                                var bytes = Convert.FromBase64String(layer["InkData"].GetString());
+                                await ms.WriteAsync(bytes, 0, bytes.Length);
+                                ms.Position = 0;
+                                var inkCanvas = new WXInkCanvas(UndoManager);
+                                await inkCanvas.InkPresenter.StrokeContainer.LoadAsync(ms.AsRandomAccessStream());
+                                Layers.Add(inkCanvas);
+                            }
+                            break;
+                        case "Image":
+                            {
+                                Layers.Add(new WXImageCanvas() {
+                                    Image = WXImage.FromBytes(Convert.FromBase64String(layer["ImageData"].GetString()))
+                                });
+                            }
+                            break;
                     }
                 }
                 UndoManager.Clear();
                 SelectedIndexProperty.Value = 0;
+            }
+            else if (e.Key == Windows.System.VirtualKey.V)
+            {
+                var img = await WXImage.FromClipboardAsync();
+                if (img != null)
+                {
+                    Layers.Insert(SelectedIndexProperty.Value, new WXImageCanvas() { Image = img });
+                }
+            }
+            else if (e.Key == Windows.System.VirtualKey.Z)
+            {
+                if (UndoManager.IsUndoableProperty.Value)
+                    UndoManager.Undo();
+            }
+            else if (e.Key == Windows.System.VirtualKey.Y)
+            {
+                if (UndoManager.IsRedoableProperty.Value)
+                    UndoManager.Redo();
+            }
+            else if (e.Key == Windows.System.VirtualKey.Up)
+            {
+                var idx = SelectedIndexProperty.Value;
+                if (idx < Layers.Count - 1)
+                {
+                    Layers.Move(idx, idx + 1);
+                }
+            }
+            else if (e.Key == Windows.System.VirtualKey.Down)
+            {
+                var idx = SelectedIndexProperty.Value;
+                if (idx > 0)
+                {
+                    Layers.Move(idx, idx - 1);
+                }
+            } else if (e.Key == Windows.System.VirtualKey.Delete)
+            {
+                if (Layers.Count <= 0) return;
+                var idx = SelectedIndexProperty.Value;
+                if (idx >= 0)
+                {
+                    Layers.RemoveAt(idx);
+                }
+                if (idx < Layers.Count)
+                {
+                    SelectedIndexProperty.Value = idx;
+                } else
+                {
+                    SelectedIndexProperty.Value = Layers.Count - 1;
+                }
             }
         };
     }

@@ -128,9 +128,11 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Classes\WXImage.cs" />
     <Compile Include="Classes\WXInkController.cs" />
     <Compile Include="Controls\AbstractedUI.cs" />
     <Compile Include="Controls\Canvas\WXCanvasCollectionControl.cs" />
+    <Compile Include="Controls\Canvas\WXImageCanvas.cs" />
     <Compile Include="Controls\Canvas\WXInkCanvas.cs" />
     <Compile Include="Controls\Canvas\WXCanvasControl.cs" />
     <Compile Include="Controls\Canvas\WXCanvasController.cs" />
