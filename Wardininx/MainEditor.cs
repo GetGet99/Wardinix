@@ -241,51 +241,56 @@ class MainEditor : UserControl
             }
             // no modifier keys
             {
-                if (e.Key == VirtualKey.Up)
+                switch (e.Key)
                 {
-                    var idx = SelectedIndexProperty.Value;
-                    if (idx < Layers.Count - 1)
-                    {
-                        SelectedIndexProperty.Value = idx + 1;
-                    }
-                    return;
-                }
-                if (e.Key == VirtualKey.Down)
-                {
-                    var idx = SelectedIndexProperty.Value;
-                    if (idx > 0)
-                    {
-                        SelectedIndexProperty.Value = idx - 1;
-                    }
-                    return;
-                }
-                if (e.Key == VirtualKey.Delete)
-                {
-                    if (Layers.Count <= 0) return;
-                    var idx = SelectedIndexProperty.Value;
-                    if (idx < 0) return;
-                    var layer = Layers[idx];
-                    UndoManager.DoAndAddAction(new UndoableAction<(int Index, WXCanvasControl Layer)>("Delete Layer", (idx, layer),
-                        x =>
+                    case VirtualKey.W:
+                    case VirtualKey.Up:
                         {
-                            Layers.Insert(x.Index, x.Layer);
-                            SelectedIndexProperty.Value = x.Index;
-                        },
-                        x =>
+                            var idx = SelectedIndexProperty.Value;
+                            if (idx < Layers.Count - 1)
+                            {
+                                SelectedIndexProperty.Value = idx + 1;
+                            }
+                            return;
+                        }
+                    case VirtualKey.S:
+                    case VirtualKey.Down:
                         {
-                            Layers.RemoveAt(idx);
-                            if (x.Index < Layers.Count)
+                            var idx = SelectedIndexProperty.Value;
+                            if (idx > 0)
                             {
-                                SelectedIndexProperty.Value = idx;
+                                SelectedIndexProperty.Value = idx - 1;
                             }
-                            else
-                            {
-                                SelectedIndexProperty.Value = Layers.Count - 1;
-                            }
-                        },
-                        delegate { }
-                    ));
-                    return;
+                            return;
+                        }
+                    case VirtualKey.Delete:
+                        {
+                            if (Layers.Count <= 0) return;
+                            var idx = SelectedIndexProperty.Value;
+                            if (idx < 0) return;
+                            var layer = Layers[idx];
+                            UndoManager.DoAndAddAction(new UndoableAction<(int Index, WXCanvasControl Layer)>("Delete Layer", (idx, layer),
+                                x =>
+                                {
+                                    Layers.Insert(x.Index, x.Layer);
+                                    SelectedIndexProperty.Value = x.Index;
+                                },
+                                x =>
+                                {
+                                    Layers.RemoveAt(idx);
+                                    if (x.Index < Layers.Count)
+                                    {
+                                        SelectedIndexProperty.Value = idx;
+                                    }
+                                    else
+                                    {
+                                        SelectedIndexProperty.Value = Layers.Count - 1;
+                                    }
+                                },
+                                delegate { }
+                            ));
+                            return;
+                        }
                 }
             }
         };
