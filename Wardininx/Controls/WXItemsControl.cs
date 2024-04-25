@@ -1,12 +1,11 @@
 #nullable enable
-using Get.Data.Properties;
+using Get.Data.DataTemplates;
 using Windows.UI.Xaml.Controls;
 using Get.Data.Bindings;
 using Windows.UI.Xaml;
 using Get.Data.Collections;
 using Get.Data.Collections.Update;
 using Get.Data;
-using System.Reflection;
 using Get.Data.Collections.Linq;
 using Get.Data.Collections.Conversion;
 using Get.Data.Bindings.Linq;
@@ -57,8 +56,23 @@ class WXItemsControl<T>(UIElement element, IGDCollection<UIElement> children) : 
         => collection.Bind(@out, dataTemplate);
 }
 
-class WXSelectableItem<T>(IReadOnlyBinding<IndexItem<T>> itemBinding, WXSelectableItemsControl<T> source)
+class PrimaryConstructorHelper
 {
+    public PrimaryConstructorHelper()
+    {
+        OnConstruct();
+    }
+    protected virtual void OnConstruct() { }
+}
+class WXSelectableItem<T>(IReadOnlyBinding<IndexItem<T>> itemBinding, WXSelectableItemsControl<T> source) : PrimaryConstructorHelper
+{
+    protected override void OnConstruct()
+    {
+        itemBinding.ValueChanged += delegate
+        {
+
+        };
+    }
     public IReadOnlyBinding<IndexItem<T>> IndexItemBinding { get; } = itemBinding;
     public IBinding<bool> IsSelected { get; } =
         source.SelectedIndexProperty.Zip(itemBinding, (x, item) => item.Index == x,
@@ -87,6 +101,10 @@ class WXSelectableItemsControl<T> : WXItemsControlBase<T, DataTemplate<WXSelecta
         SelectedValueProperty = new(_SelectedValueProperty);
         SelectedIndexProperty.ValueChanged += SelectedIndexProperty_ValueChanged;
         ItemsSourceProperty.ItemsChanged += ItemsSourceProperty_ItemsChanged;
+        tempCollection.ItemsChanged += delegate
+        {
+            var a = this;
+        };
     }
 
     private void ItemsSourceProperty_ItemsChanged(IEnumerable<IUpdateAction<T>> actions)
@@ -144,7 +162,7 @@ class WXSelectableItemsControl<T> : WXItemsControlBase<T, DataTemplate<WXSelecta
     protected override IDisposable Bind(OneWayUpdateCollectionProperty<T> collection, IGDCollection<UIElement> @out, DataTemplate<WXSelectableItem<T>, UIElement> dataTemplate)
     {
         tempCollection.Clear();
-        var a = collection.AsUpdateReadOnly().WithIndex().Bind(tempCollection, new(root => new(root, this)));
+        var a = collection.AsUpdateReadOnly().WithIndex().Bind(tempCollection, new(root => new(root, this)), debug: false);
         var b = tempCollection.Bind(@out, dataTemplate);
         return new Disposable(() =>
         {

@@ -105,7 +105,11 @@ class WXLayerToolbarUI : WXControl
                                 {
                                     {
                                         ContentControl.ContentProperty.AsPropertyDefinition<Button, object>(),
-                                        root.SelectPath(x => x.IndexItemBinding).Select(x => (object)(x.Index + 1))
+                                        root.SelectPath(x => x.IndexItemBinding).Select(x =>
+                                        {
+                                            var r = root;
+                                            return (object)(x.Index + 1);
+                                        })
                                     }
                                 }
                             }

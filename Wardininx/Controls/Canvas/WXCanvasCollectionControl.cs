@@ -1,14 +1,8 @@
-using System.Collections.ObjectModel;
 using Windows.UI.Xaml.Controls;
-using Get.Data.XACL;
 using Windows.UI.Xaml.Media;
 using Windows.UI;
 using Windows.Foundation;
-using Get.Data.ModelLinker;
-using System.Numerics;
-using Get.Data.Properties;
 using Windows.UI.Xaml;
-using Get.Data.Bindings;
 using Get.Data.Collections;
 using Get.Data.Collections.Linq;
 using Get.Data.Collections.Update;

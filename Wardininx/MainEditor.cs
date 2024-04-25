@@ -172,7 +172,8 @@ class MainEditor : UserControl
                 {
                     Layers.Move(idx, idx - 1);
                 }
-            } else if (e.Key == Windows.System.VirtualKey.Delete)
+            }
+            else if (e.Key == Windows.System.VirtualKey.Delete)
             {
                 if (Layers.Count <= 0) return;
                 var idx = SelectedIndexProperty.Value;

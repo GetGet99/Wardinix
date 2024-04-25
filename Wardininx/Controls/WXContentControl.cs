@@ -1,7 +1,6 @@
 #nullable enable
-using Get.Data.Properties;
+using Get.Data.DataTemplates;
 using Windows.UI.Xaml.Controls;
-using Get.Data.Bindings;
 using Windows.UI.Xaml;
 
 namespace Wardininx.Controls;
