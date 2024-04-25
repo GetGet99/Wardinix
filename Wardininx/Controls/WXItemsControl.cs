@@ -162,7 +162,7 @@ class WXSelectableItemsControl<T> : WXItemsControlBase<T, DataTemplate<WXSelecta
     protected override IDisposable Bind(OneWayUpdateCollectionProperty<T> collection, IGDCollection<UIElement> @out, DataTemplate<WXSelectableItem<T>, UIElement> dataTemplate)
     {
         tempCollection.Clear();
-        var a = collection.AsUpdateReadOnly().WithIndex().Bind(tempCollection, new(root => new(root, this)), debug: false);
+        var a = collection.AsUpdateReadOnly().WithIndex().Bind(tempCollection, new(root => new(root, this)));
         var b = tempCollection.Bind(@out, dataTemplate);
         return new Disposable(() =>
         {

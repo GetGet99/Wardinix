@@ -1,6 +1,10 @@
-﻿using System.Diagnostics;
+﻿using Get.Data.Collections;
+using Get.Data.Collections.Implementation;
+using Get.Data.Collections.Update;
+using System.Diagnostics;
 using Wardininx;
 using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
 
 namespace Get.Data.Properties
@@ -46,5 +50,19 @@ namespace Get.Data.Properties
             => new(dp);
         public static DPPropertyWrapper<TOwnerType, TTargetType> AsProperty<TOwnerType, TTargetType>(this DependencyProperty dp, TOwnerType owner) where TOwnerType : DependencyObject
             => new(owner, dp);
+    }
+    readonly struct UIElementCollectionGDCollection(UIElementCollection c) : IGDCollection<UIElement>, Get.Data.Collections.Implementation.IMoveImplGDCollection<UIElement>
+    {
+        public UIElement this[int index] { get => c[index]; set => c[index] = value; }
+
+        public int Count => c.Count;
+
+        public void Insert(int index, UIElement item)
+            => c.Insert(index, item);
+
+        public void RemoveAt(int index)
+            => c.RemoveAt(index);
+        public void Move(int index1, int index2)
+            => c.Move((uint)index1, (uint)index2);
     }
 }
