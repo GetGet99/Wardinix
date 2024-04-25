@@ -9,6 +9,8 @@ using Wardininx.Controls.Toolbars;
 using Wardininx.UndoRedos;
 using Windows.Data.Json;
 using Windows.Storage.Pickers;
+using Windows.System;
+using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
@@ -47,108 +49,228 @@ class MainEditor : UserControl
             }
         };
         toolbar.LayerToolbar.SelectedIndexProperty.Bind(SelectedIndexProperty, Get.Data.Bindings.BindingModes.TwoWay);
+        bool IsKeyDown(VirtualKey key)
+            => CoreWindow.GetForCurrentThread().GetAsyncKeyState(key) != CoreVirtualKeyStates.None;
         KeyDown += async (o, e) =>
         {
-            if (e.Key == Windows.System.VirtualKey.S)
+            if (IsKeyDown(VirtualKey.Control))
             {
-                var filePicker = new FileSavePicker()
+                switch (e.Key)
                 {
-                    DefaultFileExtension = ".wdii",
-                    FileTypeChoices =
-                {
-                    { "Wardinix file", [".wdii"] }
-                }
-                };
-                var file = await filePicker.PickSaveFileAsync();
-                if (file is null) return;
-                var jsonArr = new JsonArray();
-                foreach (var layer in Layers)
-                {
-                    switch (layer)
-                    {
-                        case WXInkCanvas inkCanvas:
+                    case VirtualKey.S:
+                        {
+                            var filePicker = new FileSavePicker()
                             {
-                                using var ms = new MemoryStream();
-                                await inkCanvas.InkPresenter.StrokeContainer.SaveAsync(ms.AsRandomAccessStream());
-                                jsonArr.Add(new JsonObject
+                                DefaultFileExtension = ".wdii",
+                                FileTypeChoices =
+                            {
+                                { "Wardinix file", [".wdii"] }
+                            }
+                            };
+                            var file = await filePicker.PickSaveFileAsync();
+                            if (file is null) return;
+                            var jsonArr = new JsonArray();
+                            foreach (var layer in Layers)
+                            {
+                                switch (layer)
                                 {
-                                    { "LayerType", JsonValue.CreateStringValue("Ink") },
-                                    { "InkData", JsonValue.CreateStringValue(Convert.ToBase64String(ms.ToArray())) }
-                                });
+                                    case WXInkCanvas inkCanvas:
+                                        {
+                                            using var ms = new MemoryStream();
+                                            await inkCanvas.InkPresenter.StrokeContainer.SaveAsync(ms.AsRandomAccessStream());
+                                            jsonArr.Add(new JsonObject
+                                    {
+                                        { "LayerType", JsonValue.CreateStringValue("Ink") },
+                                        { "InkData", JsonValue.CreateStringValue(Convert.ToBase64String(ms.ToArray())) }
+                                    });
+                                        }
+                                        break;
+                                    case WXImageCanvas imageCanvas:
+                                        {
+                                            jsonArr.Add(new JsonObject
+                                    {
+                                        { "LayerType", JsonValue.CreateStringValue("Image") },
+                                        { "ImageData", JsonValue.CreateStringValue(Convert.ToBase64String(imageCanvas.Image.ToBytes())) }
+                                    });
+                                        }
+                                        break;
+                                }
                             }
-                            break;
-                        case WXImageCanvas imageCanvas:
-                            {
-                                jsonArr.Add(new JsonObject
+                            using var stream = await file.OpenStreamForWriteAsync();
+                            stream.Position = 0;
+                            using StreamWriter writer = new(stream);
+                            await writer.WriteAsync(
+                                new JsonObject()
                                 {
-                                    { "LayerType", JsonValue.CreateStringValue("Image") },
-                                    { "ImageData", JsonValue.CreateStringValue(Convert.ToBase64String(imageCanvas.Image.ToBytes())) }
-                                });
-                            }
-                            break;
-                    }
-                }
-                using var stream = await file.OpenStreamForWriteAsync();
-                stream.Position = 0;
-                using StreamWriter writer = new(stream);
-                await writer.WriteAsync(
-                    new JsonObject()
-                    {
-                    { "Type", JsonValue.CreateStringValue("LayerContainer") },
-                    { "Layers", jsonArr }
-                    }.ToString()
-                );
-                Focus(FocusState.Programmatic);
-            }
-            else if (e.Key == Windows.System.VirtualKey.O)
-            {
-                var filePicker = new FileOpenPicker()
-                {
-                    FileTypeFilter = { ".wdii" }
-                };
-                var file = await filePicker.PickSingleFileAsync();
-                if (file is null) return;
-                var or = await file.OpenReadAsync();
-                using var reader = new StreamReader(or.AsStream());
-                var json = JsonObject.Parse(await reader.ReadToEndAsync());
-                Layers.Clear();
-                foreach (var ele in json["Layers"].GetArray())
-                {
-                    var layer = ele.GetObject();
-                    switch (layer["LayerType"].GetString())
-                    {
-                        case "Ink":
+                                { "Type", JsonValue.CreateStringValue("LayerContainer") },
+                                { "Layers", jsonArr }
+                                }.ToString()
+                            );
+                            Focus(FocusState.Programmatic);
+                        }
+                        return;
+                    case VirtualKey.O:
+                        {
+                            var filePicker = new FileOpenPicker()
                             {
-                                using var ms = new MemoryStream();
-                                var bytes = Convert.FromBase64String(layer["InkData"].GetString());
-                                await ms.WriteAsync(bytes, 0, bytes.Length);
-                                ms.Position = 0;
-                                var inkCanvas = new WXInkCanvas(UndoManager);
-                                await inkCanvas.InkPresenter.StrokeContainer.LoadAsync(ms.AsRandomAccessStream());
-                                Layers.Add(inkCanvas);
-                            }
-                            break;
-                        case "Image":
+                                FileTypeFilter = { ".wdii" }
+                            };
+                            var file = await filePicker.PickSingleFileAsync();
+                            if (file is null) return;
+                            var or = await file.OpenReadAsync();
+                            using var reader = new StreamReader(or.AsStream());
+                            var json = JsonObject.Parse(await reader.ReadToEndAsync());
+                            Layers.Clear();
+                            foreach (var ele in json["Layers"].GetArray())
                             {
-                                Layers.Add(new WXImageCanvas() {
-                                    Image = WXImage.FromBytes(Convert.FromBase64String(layer["ImageData"].GetString()))
-                                });
+                                var layer = ele.GetObject();
+                                switch (layer["LayerType"].GetString())
+                                {
+                                    case "Ink":
+                                        {
+                                            using var ms = new MemoryStream();
+                                            var bytes = Convert.FromBase64String(layer["InkData"].GetString());
+                                            await ms.WriteAsync(bytes, 0, bytes.Length);
+                                            ms.Position = 0;
+                                            var inkCanvas = new WXInkCanvas(UndoManager);
+                                            await inkCanvas.InkPresenter.StrokeContainer.LoadAsync(ms.AsRandomAccessStream());
+                                            Layers.Add(inkCanvas);
+                                        }
+                                        break;
+                                    case "Image":
+                                        {
+                                            Layers.Add(new WXImageCanvas()
+                                            {
+                                                Image = WXImage.FromBytes(Convert.FromBase64String(layer["ImageData"].GetString()))
+                                            });
+                                        }
+                                        break;
+                                }
                             }
-                            break;
-                    }
+                            UndoManager.Clear();
+                            SelectedIndexProperty.Value = 0;
+                            Focus(FocusState.Programmatic);
+                        }
+                        return;
+                    case VirtualKey.V:
+                        {
+                            var img = await WXImage.FromClipboardAsync();
+                            if (img != null)
+                            {
+                                var idx = SelectedIndexProperty.Value;
+                                var layer = new WXImageCanvas() { Image = img };
+                                UndoManager.DoAndAddAction(new UndoableAction<(int Index, WXCanvasControl Layer)>("Delete Layer", (idx, layer),
+                                    x =>
+                                    {
+                                        Layers.RemoveAt(idx);
+                                        if (x.Index < Layers.Count)
+                                        {
+                                            SelectedIndexProperty.Value = idx;
+                                        }
+                                        else
+                                        {
+                                            SelectedIndexProperty.Value = Layers.Count - 1;
+                                        }
+                                    },
+                                    x =>
+                                    {
+                                        Layers.Insert(x.Index, x.Layer);
+                                        SelectedIndexProperty.Value = x.Index;
+                                    },
+                                    delegate { }
+                                ));
+                            }
+                        }
+                        return;
+                    case VirtualKey.Z:
+                        if (IsKeyDown(VirtualKey.Shift)) goto case VirtualKey.Y;
+                        if (UndoManager.IsUndoableProperty.Value)
+                            UndoManager.Undo();
+                        return;
+                    case VirtualKey.Y:
+                        if (UndoManager.IsRedoableProperty.Value)
+                            UndoManager.Redo();
+                        return;
                 }
-                UndoManager.Clear();
-                SelectedIndexProperty.Value = 0;
-                Focus(FocusState.Programmatic);
             }
-            else if (e.Key == Windows.System.VirtualKey.V)
+            if (IsKeyDown(VirtualKey.Shift))
             {
-                var img = await WXImage.FromClipboardAsync();
-                if (img != null)
+                if (e.Key == VirtualKey.Up)
                 {
                     var idx = SelectedIndexProperty.Value;
-                    var layer = new WXImageCanvas() { Image = img };
+                    if (idx < Layers.Count - 1)
+                    {
+                        UndoManager.DoAndAddAction(new UndoableAction<int>("Move Layer Up", idx,
+                            idx =>
+                            {
+                                Layers.Move(idx + 1, idx);
+                                SelectedIndexProperty.Value = idx;
+                            },
+                            idx =>
+                            {
+                                Layers.Move(idx, idx + 1);
+                                SelectedIndexProperty.Value = idx + 1;
+                            },
+                            delegate { }
+                        ));
+
+                    }
+                    return;
+                }
+                else if (e.Key == VirtualKey.Down)
+                {
+                    var idx = SelectedIndexProperty.Value;
+                    if (idx > 0)
+                    {
+                        UndoManager.DoAndAddAction(new UndoableAction<int>("Move Layer Down", idx,
+                            idx =>
+                            {
+                                Layers.Move(idx - 1, idx);
+                                SelectedIndexProperty.Value = idx;
+                            },
+                            idx =>
+                            {
+                                Layers.Move(idx, idx - 1);
+                                SelectedIndexProperty.Value = idx - 1;
+                            },
+                            delegate { }
+                        ));
+                    }
+                    return;
+                }
+            }
+            // no modifier keys
+            {
+                if (e.Key == VirtualKey.Up)
+                {
+                    var idx = SelectedIndexProperty.Value;
+                    if (idx < Layers.Count - 1)
+                    {
+                        SelectedIndexProperty.Value = idx + 1;
+                    }
+                    return;
+                }
+                if (e.Key == VirtualKey.Down)
+                {
+                    var idx = SelectedIndexProperty.Value;
+                    if (idx > 0)
+                    {
+                        SelectedIndexProperty.Value = idx - 1;
+                    }
+                    return;
+                }
+                if (e.Key == VirtualKey.Delete)
+                {
+                    if (Layers.Count <= 0) return;
+                    var idx = SelectedIndexProperty.Value;
+                    if (idx < 0) return;
+                    var layer = Layers[idx];
                     UndoManager.DoAndAddAction(new UndoableAction<(int Index, WXCanvasControl Layer)>("Delete Layer", (idx, layer),
+                        x =>
+                        {
+                            Layers.Insert(x.Index, x.Layer);
+                            SelectedIndexProperty.Value = x.Index;
+                        },
                         x =>
                         {
                             Layers.RemoveAt(idx);
@@ -161,92 +283,10 @@ class MainEditor : UserControl
                                 SelectedIndexProperty.Value = Layers.Count - 1;
                             }
                         },
-                        x =>
-                        {
-                            Layers.Insert(x.Index, x.Layer);
-                            SelectedIndexProperty.Value = x.Index;
-                        },
                         delegate { }
                     ));
+                    return;
                 }
-            }
-            else if (e.Key == Windows.System.VirtualKey.Z)
-            {
-                if (UndoManager.IsUndoableProperty.Value)
-                    UndoManager.Undo();
-            }
-            else if (e.Key == Windows.System.VirtualKey.Y)
-            {
-                if (UndoManager.IsRedoableProperty.Value)
-                    UndoManager.Redo();
-            }
-            else if (e.Key == Windows.System.VirtualKey.Up)
-            {
-                var idx = SelectedIndexProperty.Value;
-                if (idx < Layers.Count - 1)
-                {
-                    UndoManager.DoAndAddAction(new UndoableAction<int>("Move Layer Up", idx,
-                        idx =>
-                        {
-                            Layers.Move(idx + 1, idx);
-                            SelectedIndexProperty.Value = idx;
-                        },
-                        idx =>
-                        {
-                            Layers.Move(idx, idx + 1);
-                            SelectedIndexProperty.Value = idx + 1;
-                        },
-                        delegate { }
-                    ));
-                    
-                }
-            }
-            else if (e.Key == Windows.System.VirtualKey.Down)
-            {
-                var idx = SelectedIndexProperty.Value;
-                if (idx > 0)
-                {
-                    UndoManager.DoAndAddAction(new UndoableAction<int>("Move Layer Down", idx,
-                        idx =>
-                        {
-                            Layers.Move(idx - 1, idx);
-                            SelectedIndexProperty.Value = idx;
-                        },
-                        idx =>
-                        {
-                            Layers.Move(idx, idx - 1);
-                            SelectedIndexProperty.Value = idx - 1;
-                        },
-                        delegate { }
-                    ));
-                }
-            }
-            else if (e.Key == Windows.System.VirtualKey.Delete)
-            {
-                if (Layers.Count <= 0) return;
-                var idx = SelectedIndexProperty.Value;
-                if (idx < 0) return;
-                var layer = Layers[idx];
-                UndoManager.DoAndAddAction(new UndoableAction<(int Index, WXCanvasControl Layer)>("Delete Layer", (idx, layer),
-                    x =>
-                    {
-                        Layers.Insert(x.Index, x.Layer);
-                        SelectedIndexProperty.Value = x.Index;
-                    },
-                    x =>
-                    {
-                        Layers.RemoveAt(idx);
-                        if (x.Index < Layers.Count)
-                        {
-                            SelectedIndexProperty.Value = idx;
-                        }
-                        else
-                        {
-                            SelectedIndexProperty.Value = Layers.Count - 1;
-                        }
-                    },
-                    delegate { }
-                ));
             }
         };
     }
