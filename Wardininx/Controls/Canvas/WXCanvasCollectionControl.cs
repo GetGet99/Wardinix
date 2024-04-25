@@ -51,6 +51,8 @@ partial class WXCanvasCollectionControlUI : WXCanvasControlUI
                     var xs = removed.Items.AsEnumerable();
                     foreach (var x in xs)
                     {
+                        if (canvasBoundEventHandlers.Remove(x, out var ev))
+                            x.CanvasBoundsProperty.ValueChanged -= ev;
                         var curBounds = Abstracted.CanvasBounds;
                         var removedBounds = x.CanvasBounds;
                         if (removedBounds.Top == curBounds.Top ||

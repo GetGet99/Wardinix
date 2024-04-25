@@ -146,7 +146,28 @@ class MainEditor : UserControl
                 var img = await WXImage.FromClipboardAsync();
                 if (img != null)
                 {
-                    Layers.Insert(SelectedIndexProperty.Value, new WXImageCanvas() { Image = img });
+                    var idx = SelectedIndexProperty.Value;
+                    var layer = new WXImageCanvas() { Image = img };
+                    UndoManager.DoAndAddAction(new UndoableAction<(int Index, WXCanvasControl Layer)>("Delete Layer", (idx, layer),
+                        x =>
+                        {
+                            Layers.RemoveAt(idx);
+                            if (x.Index < Layers.Count)
+                            {
+                                SelectedIndexProperty.Value = idx;
+                            }
+                            else
+                            {
+                                SelectedIndexProperty.Value = Layers.Count - 1;
+                            }
+                        },
+                        x =>
+                        {
+                            Layers.Insert(x.Index, x.Layer);
+                            SelectedIndexProperty.Value = x.Index;
+                        },
+                        delegate { }
+                    ));
                 }
             }
             else if (e.Key == Windows.System.VirtualKey.Z)
@@ -164,8 +185,20 @@ class MainEditor : UserControl
                 var idx = SelectedIndexProperty.Value;
                 if (idx < Layers.Count - 1)
                 {
-                    Layers.Move(idx, idx + 1);
-                    SelectedIndexProperty.Value = idx + 1;
+                    UndoManager.DoAndAddAction(new UndoableAction<int>("Move Layer Up", idx,
+                        idx =>
+                        {
+                            Layers.Move(idx + 1, idx);
+                            SelectedIndexProperty.Value = idx;
+                        },
+                        idx =>
+                        {
+                            Layers.Move(idx, idx + 1);
+                            SelectedIndexProperty.Value = idx + 1;
+                        },
+                        delegate { }
+                    ));
+                    
                 }
             }
             else if (e.Key == Windows.System.VirtualKey.Down)
@@ -173,25 +206,47 @@ class MainEditor : UserControl
                 var idx = SelectedIndexProperty.Value;
                 if (idx > 0)
                 {
-                    Layers.Move(idx, idx - 1);
-                    SelectedIndexProperty.Value = idx - 1;
+                    UndoManager.DoAndAddAction(new UndoableAction<int>("Move Layer Down", idx,
+                        idx =>
+                        {
+                            Layers.Move(idx - 1, idx);
+                            SelectedIndexProperty.Value = idx;
+                        },
+                        idx =>
+                        {
+                            Layers.Move(idx, idx - 1);
+                            SelectedIndexProperty.Value = idx - 1;
+                        },
+                        delegate { }
+                    ));
                 }
             }
             else if (e.Key == Windows.System.VirtualKey.Delete)
             {
                 if (Layers.Count <= 0) return;
                 var idx = SelectedIndexProperty.Value;
-                if (idx >= 0)
-                {
-                    Layers.RemoveAt(idx);
-                }
-                if (idx < Layers.Count)
-                {
-                    SelectedIndexProperty.Value = idx;
-                } else
-                {
-                    SelectedIndexProperty.Value = Layers.Count - 1;
-                }
+                if (idx < 0) return;
+                var layer = Layers[idx];
+                UndoManager.DoAndAddAction(new UndoableAction<(int Index, WXCanvasControl Layer)>("Delete Layer", (idx, layer),
+                    x =>
+                    {
+                        Layers.Insert(x.Index, x.Layer);
+                        SelectedIndexProperty.Value = x.Index;
+                    },
+                    x =>
+                    {
+                        Layers.RemoveAt(idx);
+                        if (x.Index < Layers.Count)
+                        {
+                            SelectedIndexProperty.Value = idx;
+                        }
+                        else
+                        {
+                            SelectedIndexProperty.Value = Layers.Count - 1;
+                        }
+                    },
+                    delegate { }
+                ));
             }
         };
     }

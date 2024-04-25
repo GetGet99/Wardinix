@@ -15,6 +15,7 @@ using Get.Data.Bindings.Linq;
 using System.Diagnostics;
 using Get.Data.Collections.Conversion;
 using Get.Data.Collections.Linq;
+using Wardininx.UndoRedos;
 namespace Wardininx.Controls.Toolbars;
 
 class WXLayerToolbar : AbstractedUI
@@ -80,8 +81,29 @@ class WXLayerToolbarUI : WXControl
                     Padding = new(5)
                 }.WithCustomCode(x => x.Click += delegate
                 {
-                    Abstracted.LayersProperty.Add(new WXInkCanvas(Abstracted.Parent.UndoManager));
-                    Abstracted.SelectedIndex = Abstracted.LayersProperty.Count - 1;
+
+                    var idx = Abstracted.LayersProperty.Count;
+                    var layer = new WXInkCanvas(Abstracted.Parent.UndoManager);
+                    Abstracted.Parent.UndoManager.DoAndAddAction(new UndoableAction<(int Index, WXCanvasControl Layer)>("Delete Layer", (idx, layer),
+                        x =>
+                        {
+                            Abstracted.LayersProperty.RemoveAt(idx);
+                            if (x.Index < Abstracted.LayersProperty.Count)
+                            {
+                                Abstracted.SelectedIndex = idx;
+                            }
+                            else
+                            {
+                                Abstracted.SelectedIndex = Abstracted.LayersProperty.Count - 1;
+                            }
+                        },
+                        x =>
+                        {
+                            Abstracted.LayersProperty.Insert(x.Index, x.Layer);
+                            Abstracted.SelectedIndex = x.Index;
+                        },
+                        delegate { }
+                    ));
                 }),
                 new WXSelectableItemsControl<WXCanvasControl>(
                     new StackPanel {
