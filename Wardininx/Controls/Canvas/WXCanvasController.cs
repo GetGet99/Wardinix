@@ -5,6 +5,7 @@ using Get.Data.Bindings.Linq;
 using Get.Data.Helpers;
 using Get.Data.Properties;
 using Get.Data.XACL;
+using Get.Data;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Windows.Foundation;

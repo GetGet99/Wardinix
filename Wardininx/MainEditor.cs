@@ -46,7 +46,7 @@ class MainEditor : UserControl
                 .UnsafeGetElement<UIElement>()
             }
         };
-        toolbar.LayerToolbar.SelectedIndexProperty.Bind(SelectedIndexProperty, Get.Data.Bindings.ReadOnlyBindingModes.OneWay);
+        toolbar.LayerToolbar.SelectedIndexProperty.Bind(SelectedIndexProperty, Get.Data.Bindings.BindingModes.TwoWay);
         KeyDown += async (o, e) =>
         {
             if (e.Key == Windows.System.VirtualKey.S)
@@ -98,6 +98,7 @@ class MainEditor : UserControl
                     { "Layers", jsonArr }
                     }.ToString()
                 );
+                Focus(FocusState.Programmatic);
             }
             else if (e.Key == Windows.System.VirtualKey.O)
             {
@@ -138,6 +139,7 @@ class MainEditor : UserControl
                 }
                 UndoManager.Clear();
                 SelectedIndexProperty.Value = 0;
+                Focus(FocusState.Programmatic);
             }
             else if (e.Key == Windows.System.VirtualKey.V)
             {
@@ -163,6 +165,7 @@ class MainEditor : UserControl
                 if (idx < Layers.Count - 1)
                 {
                     Layers.Move(idx, idx + 1);
+                    SelectedIndexProperty.Value = idx + 1;
                 }
             }
             else if (e.Key == Windows.System.VirtualKey.Down)
@@ -171,6 +174,7 @@ class MainEditor : UserControl
                 if (idx > 0)
                 {
                     Layers.Move(idx, idx - 1);
+                    SelectedIndexProperty.Value = idx - 1;
                 }
             }
             else if (e.Key == Windows.System.VirtualKey.Delete)
