@@ -33,6 +33,14 @@ class WXImage
         }
         return null;
     }
+    public async Task<LoadedImageSurface> GetImageSurfaceAsync()
+    {
+        var ms = new MemoryStream();
+        Content.Position = 0;
+        await Content.CopyToAsync(ms);
+        ms.Position = 0;
+        return LoadedImageSurface.StartLoadFromStream(ms.AsRandomAccessStream());
+    }
     public async Task<BitmapImage> GetBitmapImageAsync()
     {
         BitmapImage bitmapSource = new();

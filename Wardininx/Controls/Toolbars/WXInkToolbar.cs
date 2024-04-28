@@ -40,7 +40,7 @@ class WXInkToolbar : AbstractedUI
         //    Binding<double>.Create(FavoriteHighlighterSizes, HighlighterSizeIndexProperty),
         //    BindingModes.OneWay
         //);
-
+        
         InkControllerProperty.ValueChanged += (_, _) => UpdateDrawingAttribute();
         PenColorProperty.ValueChanged += (_, _) => UpdateDrawingAttribute();
         HighlighterColorProperty.ValueChanged += (_, _) => UpdateDrawingAttribute();
@@ -144,6 +144,11 @@ class WXInkToolbarUI : WXControl
     {
         Abstracted = abstracted;
         Template = App.GUIControlTemplate;
+        VisibilityProperty
+            .AsProperty<WXInkToolbarUI, Visibility>(this)
+            .Bind(abstracted.InkControllerProperty.Select(x => x is not null ? Visibility.Visible : Visibility.Collapsed),
+                ReadOnlyBindingModes.OneWay
+            );
     }
     protected override void OnApplyTemplate()
     {

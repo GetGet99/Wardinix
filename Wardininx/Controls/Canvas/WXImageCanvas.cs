@@ -1,10 +1,8 @@
 #nullable enable
 using Windows.Foundation;
 using Windows.UI.Composition;
-using Windows.UI.Input.Inking.Core;
 using Windows.UI.Xaml;
 using Wardininx.Classes;
-using Windows.UI.Xaml.Controls;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Windows.UI.Xaml.Hosting;
@@ -28,64 +26,59 @@ class WXImageCanvas : WXCanvasControl
 }
 class WXImageCanvasUI : WXCanvasControlUI
 {
-    Image targetImageElement;
     public WXImageCanvas Abstracted { get; }
-    readonly Property<Rect> CanvasBoundsWriter;
     public WXImageCanvasUI(WXImageCanvas abstracted, Property<Rect> canvasBoundsWriter)
     {
         Abstracted = abstracted;
-        // Property Binding
-        Template = App.GUIControlTemplate;
-        CanvasBoundsWriter = canvasBoundsWriter;
+        RealRootVisual = ElementCompositionPreview.GetElementVisual(this);
+        Compositor = RealRootVisual.Compositor;
+        RootVisual = Compositor.CreateContainerVisual();
+        ElementCompositionPreview.SetElementChildVisual(this, RootVisual);
+        RootVisual.Clip = Compositor.CreateInsetClip(0, 0, 0, 0);
+        RootVisual.RelativeSizeAdjustment = Vector2.One;
+        UserOffsetVisual = Compositor.CreateContainerVisual();
+        UserOffsetVisual.Size = new(WXInkCanvas.RealCanvasSize, WXInkCanvas.RealCanvasSize);
+        UserOffsetVisual.Offset = default;
+        UserOffsetVisual.Comment = "UserOffsetVisual";
+        RootVisual.Children.InsertAtTop(UserOffsetVisual);
+        ImageVisual = Compositor.CreateSpriteVisual();
+        ImageVisual.Comment = "ImageVisual";
+        UserOffsetVisual.Children.InsertAtTop(ImageVisual);
+        CompositionSurfaceBrush surfaceBrush = Compositor.CreateSurfaceBrush();
+        ImageVisual.Brush = surfaceBrush;
         abstracted.ImageProperty.ValueChanged += ImageProperty_ValueChanged;
+        async void ImageProperty_ValueChanged(WXImage? oldValue, WXImage? newValue)
+        {
+            if (newValue is not null)
+            {
+                (surfaceBrush.Surface as LoadedImageSurface)?.Dispose();
+                LoadedImageSurface l;
+                surfaceBrush.Surface = l = await newValue.GetImageSurfaceAsync();
+                ImageVisual.Size = new((float)l.DecodedSize.Width, (float)l.DecodedSize.Height);
+                canvasBoundsWriter.Value = new(default, l.DecodedSize);
+            }
+        };
+        // update
+        ImageProperty_ValueChanged(null, abstracted.Image);
+        // Property Binding
+        Abstracted.CanvasScrollOffsetProperty.ValueChanged += (_, x) => UserOffsetVisual.Offset = x;
+        Abstracted.CanvasScaleProperty.ValueChanged += (_, x) => UserOffsetVisual.Scale = x;
+        Abstracted.IsSelectedProperty.ValueChanged += (_, @new) =>
+        {
+            RootVisual.IsHitTestVisible = @new;
+        };
+        RootVisual.IsHitTestVisible = Abstracted.IsSelected;
         Abstracted.IsSelectedProperty.ValueChanged += (_, @new) =>
         {
             IsHitTestVisible = @new;
         };
         IsHitTestVisible = Abstracted.IsSelected;
-        //var compositor = ElementCompositionPreview.GetElementVisual(this).Compositor;
-        //var spriteVisual = compositor.CreateSpriteVisual();
-        //CompositionSurfaceBrush surfaceBrush = compositor.CreateSurfaceBrush();
-        //surfaceBrush.Surface = LoadedImageSurface.StartLoadFromStream()
     }
 
-    private async void ImageProperty_ValueChanged(WXImage? oldValue, WXImage? newValue)
-    {
-        if (newValue != null && targetImageElement != null)
-        {
-            var image = await newValue.GetBitmapImageAsync();
-            targetImageElement.Source = image;
-        }
-    }
 
-    protected override async void OnApplyTemplate()
-    {
-        base.OnApplyTemplate();
-        var uc = (UserControl)GetTemplateChild(App.GUIRootName);
-        if (uc != null)
-        {
-            uc.Content = targetImageElement = new Image();
-            targetImageElement.SizeChanged += (sender, args) =>
-            {
-                CanvasBoundsWriter.Value = new(0, 0, targetImageElement.ActualWidth, targetImageElement.ActualHeight);
-            };
-            CanvasBoundsWriter.Value = new(0, 0, targetImageElement.ActualWidth, targetImageElement.ActualHeight);
-            Abstracted.CanvasScrollOffsetProperty.ValueChanged += (_, x) =>
-            {
-                if (targetImageElement != null) targetImageElement.Translation = x;
-            };
-            targetImageElement.Translation = Abstracted.CanvasScrollOffset;
-            Abstracted.CanvasScaleProperty.ValueChanged += (_, x) =>
-            {
-                if (targetImageElement != null) targetImageElement.Scale = x;
-            };
-            targetImageElement.Scale = Abstracted.CanvasScale;
-            var newValue = Abstracted.Image;
-            if (newValue != null)
-            {
-                var image = await newValue.GetBitmapImageAsync();
-                targetImageElement.Source = image;
-            }
-        }
-    }
+    readonly Compositor Compositor;
+    readonly ContainerVisual UserOffsetVisual;
+    readonly SpriteVisual ImageVisual;
+    readonly ContainerVisual RootVisual;
+    readonly Visual RealRootVisual;
 }
