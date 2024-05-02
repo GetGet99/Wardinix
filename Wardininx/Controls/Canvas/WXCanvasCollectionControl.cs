@@ -21,13 +21,17 @@ partial class WXCanvasCollectionControlUI : WXCanvasControlUI
         Abstracted = abstracted;
         CanvasBoundsWriter = canvasBoundsWriter;
         Template = App.GUIControlTemplate;
+        var transform = new CompositeTransform();
+        RenderTransform = transform;
         abstracted.CanvasScaleProperty.ValueChanged += (_, value) =>
         {
-            foreach (var x in Abstracted.Children) x.CanvasScale = value;
+            transform.ScaleX = value.X;
+            transform.ScaleY = value.Y;
         };
         abstracted.CanvasScrollOffsetProperty.ValueChanged += (_, value) =>
         {
-            foreach (var x in Abstracted.Children) x.CanvasScrollOffset = value;
+            transform.TranslateX = value.X;
+            transform.TranslateY = value.Y;
         };
     }
 

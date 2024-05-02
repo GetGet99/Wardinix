@@ -2,12 +2,14 @@ using Get.Data.Collections;
 using Get.Data.Helpers;
 using Get.Data.Properties;
 using Get.Data.XACL;
+using System.Numerics;
 using System.Text;
 using Wardininx.Classes;
 using Wardininx.Controls.Canvas;
 using Wardininx.Controls.Toolbars;
 using Wardininx.UndoRedos;
 using Windows.Data.Json;
+using Windows.Foundation;
 using Windows.Storage.Pickers;
 using Windows.System;
 using Windows.UI.Core;
@@ -35,12 +37,22 @@ class MainEditor : UserControl
         ActualThemeChanged += (_1, _2) => MicaBrush.Theme = ActualTheme;
         UpdateCollectionInitializer<WXCanvasControl> Layers = [CreateInkCanvas()];
         Property<int> SelectedIndexProperty = new(0);
+        Property<Vector3> CanvasScrollOffsetProperty = new(default);
+        Property<float> CanvasScaleProperty = new(default);
         Content = new Grid
         {
             Background = MicaBrush,
             Children =
             {
-                new WXCanvasController { Layers = Layers }.UnsafeGetElement<UIElement>(),
+                new WXCanvasController { Layers = Layers }
+                .WithTwoWayUpdateSourceImmedieteBinding(
+                    new()
+                    {
+                        { WXCanvasController.CanvasScrollOffsetPropertyDefinition, CanvasScrollOffsetProperty },
+                        { WXCanvasController.CanvasScalePropertyDefinition, CanvasScaleProperty }
+                    }
+                )
+                .UnsafeGetElement<UIElement>(),
                 new WXToolbar(UndoManager) {
                     LayerToolbar = { Layers = Layers }
                 }
@@ -141,7 +153,9 @@ class MainEditor : UserControl
                                         {
                                             Layers.Add(new WXImageCanvas()
                                             {
-                                                Image = WXImage.FromBytes(Convert.FromBase64String(layer["ImageData"].GetString()))
+                                                Image = WXImage.FromBytes(Convert.FromBase64String(layer["ImageData"].GetString())),
+                                                //Offset = CanvasScrollOffsetProperty.Value,
+                                                //CanvasScale = CanvasScaleProperty.Value
                                             });
                                         }
                                         break;
@@ -158,7 +172,12 @@ class MainEditor : UserControl
                             if (img != null)
                             {
                                 var idx = SelectedIndexProperty.Value;
-                                var layer = new WXImageCanvas() { Image = img };
+                                var scale = 1 / CanvasScaleProperty.Value;
+                                var layer = new WXImageCanvas() {
+                                    Image = img,
+                                    Offset = CanvasScrollOffsetProperty.Value,
+                                    CanvasScale = new(scale, scale, scale)
+                                };
                                 UndoManager.DoAndAddAction(new UndoableAction<(int Index, WXCanvasControl Layer)>("Delete Layer", (idx, layer),
                                     x =>
                                     {

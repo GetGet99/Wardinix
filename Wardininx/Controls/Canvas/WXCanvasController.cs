@@ -28,8 +28,11 @@ class WXCanvasController : AbstractedUI
     public OneWayUpdateCollectionProperty<WXCanvasControl> LayersProperty { get; } = new();
     public IUpdateReadOnlyCollection<WXCanvasControl> Layers { get => LayersProperty.Value; set => LayersProperty.Value = value; }
     protected readonly Property<Rect> CanvasBoundsPropertyProtected = new(default);
-    public static PropertyDefinition<WXCanvasControl, Rect> CanvasBoundsPropertyDefinition { get; }
-        = new(x => x.CanvasBoundsProperty);
+    public static PropertyDefinition<WXCanvasController, Rect> CanvasBoundsPropertyDefinition { get; }
+    public static PropertyDefinition<WXCanvasController, Vector3> CanvasScrollOffsetPropertyDefinition { get; }
+        = new(x => x.CanvasScrollOffsetProperty);
+    public static PropertyDefinition<WXCanvasController, float> CanvasScalePropertyDefinition { get; }
+        = new(x => x.CanvasScaleProperty);
     public ReadOnlyProperty<Rect> CanvasBoundsProperty { get; }
     public Rect CanvasBounds
     {

@@ -7,6 +7,8 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using Windows.UI.Xaml.Hosting;
 using Windows.UI.Xaml.Media;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Media.Imaging;
 
 namespace Wardininx.Controls.Canvas;
 
@@ -27,47 +29,50 @@ class WXImageCanvas : WXCanvasControl
 class WXImageCanvasUI : WXCanvasControlUI
 {
     public WXImageCanvas Abstracted { get; }
+    Property<Rect> CanvasBoundsWriter;
     public WXImageCanvasUI(WXImageCanvas abstracted, Property<Rect> canvasBoundsWriter)
     {
         Abstracted = abstracted;
-        RealRootVisual = ElementCompositionPreview.GetElementVisual(this);
-        Compositor = RealRootVisual.Compositor;
-        RootVisual = Compositor.CreateContainerVisual();
-        ElementCompositionPreview.SetElementChildVisual(this, RootVisual);
-        RootVisual.Clip = Compositor.CreateInsetClip(0, 0, 0, 0);
-        RootVisual.RelativeSizeAdjustment = Vector2.One;
-        UserOffsetVisual = Compositor.CreateContainerVisual();
-        UserOffsetVisual.Size = new(WXInkCanvas.RealCanvasSize, WXInkCanvas.RealCanvasSize);
-        UserOffsetVisual.Offset = default;
-        UserOffsetVisual.Comment = "UserOffsetVisual";
-        RootVisual.Children.InsertAtTop(UserOffsetVisual);
-        ImageVisual = Compositor.CreateSpriteVisual();
-        ImageVisual.Comment = "ImageVisual";
-        UserOffsetVisual.Children.InsertAtTop(ImageVisual);
-        CompositionSurfaceBrush surfaceBrush = Compositor.CreateSurfaceBrush();
-        ImageVisual.Brush = surfaceBrush;
+        CanvasBoundsWriter = canvasBoundsWriter;
+        Template = App.GUIControlTemplate;
+    }
+    protected override void OnApplyTemplate()
+    {
+        base.OnApplyTemplate();
+        var abstracted = Abstracted;
+
+        var gui = (UserControl)GetTemplateChild(App.GUIRootName);
+        var image = new Image();
+        gui.Content = image;
         abstracted.ImageProperty.ValueChanged += ImageProperty_ValueChanged;
         async void ImageProperty_ValueChanged(WXImage? oldValue, WXImage? newValue)
         {
             if (newValue is not null)
             {
-                (surfaceBrush.Surface as LoadedImageSurface)?.Dispose();
-                LoadedImageSurface l;
-                surfaceBrush.Surface = l = await newValue.GetImageSurfaceAsync();
-                ImageVisual.Size = new((float)l.DecodedSize.Width, (float)l.DecodedSize.Height);
-                canvasBoundsWriter.Value = new(default, l.DecodedSize);
+                var img = await newValue.GetBitmapImageAsync();
+                image.Source = img;
+                CanvasBoundsWriter.Value = new(default, new Size(img.DecodePixelWidth, img.DecodePixelHeight));
             }
         };
         // update
         ImageProperty_ValueChanged(null, abstracted.Image);
+        
+        var transform = new CompositeTransform();
+        RenderTransform = transform;
         // Property Binding
-        Abstracted.CanvasScrollOffsetProperty.ValueChanged += (_, x) => UserOffsetVisual.Offset = x;
-        Abstracted.CanvasScaleProperty.ValueChanged += (_, x) => UserOffsetVisual.Scale = x;
-        Abstracted.IsSelectedProperty.ValueChanged += (_, @new) =>
+        Abstracted.OffsetProperty.ValueChanged += (_, x) =>
         {
-            RootVisual.IsHitTestVisible = @new;
+            transform.TranslateX = x.X;
+            transform.TranslateY = x.Y;
         };
-        RootVisual.IsHitTestVisible = Abstracted.IsSelected;
+        transform.TranslateX = Abstracted.Offset.X;
+        transform.TranslateY = Abstracted.Offset.Y;
+        Abstracted.CanvasScaleProperty.ValueChanged += (_, x) =>
+        {
+            transform.ScaleX = x.X; transform.ScaleY = x.Y;
+        };
+        transform.ScaleX = Abstracted.CanvasScale.X;
+        transform.ScaleY = Abstracted.CanvasScale.Y;
         Abstracted.IsSelectedProperty.ValueChanged += (_, @new) =>
         {
             IsHitTestVisible = @new;
@@ -75,10 +80,4 @@ class WXImageCanvasUI : WXCanvasControlUI
         IsHitTestVisible = Abstracted.IsSelected;
     }
 
-
-    readonly Compositor Compositor;
-    readonly ContainerVisual UserOffsetVisual;
-    readonly SpriteVisual ImageVisual;
-    readonly ContainerVisual RootVisual;
-    readonly Visual RealRootVisual;
 }

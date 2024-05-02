@@ -51,7 +51,7 @@ partial class WXInkCanvasUI : WXCanvasControlUI
         Compositor = RealRootVisual.Compositor;
         RootVisual = Compositor.CreateContainerVisual();
         ElementCompositionPreview.SetElementChildVisual(this, RootVisual);
-        RootVisual.Clip = Compositor.CreateInsetClip(0, 0, 0, 0);
+        //RootVisual.Clip = Compositor.CreateInsetClip(0, 0, 0, 0);
         RootVisual.RelativeSizeAdjustment = Vector2.One;
         UserOffsetVisual = Compositor.CreateContainerVisual();
         UserOffsetVisual.Size = new(WXInkCanvas.RealCanvasSize, WXInkCanvas.RealCanvasSize);
