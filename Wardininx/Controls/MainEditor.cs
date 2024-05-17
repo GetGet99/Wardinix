@@ -18,18 +18,15 @@ namespace Wardininx;
 
 class MainEditor : UserControl
 {
-    UndoManager UndoManager { get; } = new();
-    public MainEditor()
+    public MainEditor(Document document)
     {
-        InkLayerCore CreateInkCanvas() => new(UndoManager);
+        UndoManager UndoManager = document.UndoManager;
         var MicaBrush = new BlurredWallpaperMaterials.BackdropMaterial
         {
             Kind = (int)BlurredWallpaperMaterials.BackdropKind.Base,
             Theme = ActualTheme
         };
         ActualThemeChanged += (_1, _2) => MicaBrush.Theme = ActualTheme;
-        Document document = new(new());
-        document.Layers.Add(CreateInkCanvas().GetEditingSession(document));
         var Layers = document.Layers;
         var SelectedIndexProperty = document.SelectedIndexProperty;
         var CanvasViewOffsetProperty = document.CanvasViewOffsetProperty;
@@ -188,11 +185,4 @@ class MainEditor : UserControl
         };
     }
 
-}
-public class MainPage : Page
-{
-    public MainPage()
-    {
-        Content = new MainEditor();
-    }
 }

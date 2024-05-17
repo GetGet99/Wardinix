@@ -1,8 +1,9 @@
 using Get.Data.Helpers;
 using Get.Data.Properties;
 using System.Numerics;
-using System.Runtime.CompilerServices;
-using Wardininx.Classes;
+using Wardininx.API;
+using Wardininx.API.Inking;
+using Wardininx.Core.Inking;
 using Wardininx.UndoRedos;
 using Windows.Foundation;
 using Windows.UI;
@@ -10,7 +11,6 @@ using Windows.UI.Composition;
 using Windows.UI.Input.Inking;
 using Windows.UI.Input.Inking.Core;
 using Windows.UI.Xaml;
-using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Hosting;
 using Windows.UI.Xaml.Media;
 
@@ -18,33 +18,25 @@ namespace Wardininx.Controls.Canvas;
 
 partial class InkLayerCore : LayerCore
 {
-    public InkController InkController { get; }
-    public InkLayerCore(UndoManager undoManager)
+    public InkControllerCore InkControllerCore { get; } = new()
     {
-        InkController = new(undoManager, InkPresenter);
-        InkPresenter.InputDeviceTypes = Windows.UI.Core.CoreInputDeviceTypes.Mouse | Windows.UI.Core.CoreInputDeviceTypes.Pen; //  | Windows.UI.Core.CoreInputDeviceTypes.Touch 
-        InkPresenter.IsInputEnabled = true;
-    }
-
+        InkPresenter =
+        {
+            InputDeviceTypes = Windows.UI.Core.CoreInputDeviceTypes.Mouse | Windows.UI.Core.CoreInputDeviceTypes.Pen, //  | Windows.UI.Core.CoreInputDeviceTypes.Touch 
+            IsInputEnabled = true
+        }
+    };
     public const float RealCanvasSize = 100000; // 1 << 20;
-    CoreInkPresenterHost CoreInkPresenterHost { get; } = new();
-    public InkPresenter InkPresenter
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => CoreInkPresenterHost.InkPresenter;
-    }
-    protected override UIElement CreateUI() => new WXInkCanvasUI(this, CoreInkPresenterHost, CanvasBoundsPropertyProtected);
+    protected override UIElement CreateUI() => new WXInkCanvasUI(this, CanvasBoundsPropertyProtected);
 }
 partial class WXInkCanvasUI : WXCanvasControlUI
 {
     public InkLayerCore Abstracted { get; }
-    readonly CoreInkPresenterHost CoreInkPresenterHost;
     readonly Property<Rect> CanvasBoundsWriter;
-    public WXInkCanvasUI(InkLayerCore abstracted, CoreInkPresenterHost coreInkPresenterHost, Property<Rect> canvasBoundsWriter)
+    public WXInkCanvasUI(InkLayerCore abstracted, Property<Rect> canvasBoundsWriter)
     {
         Background = new SolidColorBrush(Colors.Transparent);
         Abstracted = abstracted;
-        CoreInkPresenterHost = coreInkPresenterHost;
         CanvasBoundsWriter = canvasBoundsWriter;
         // Setup
         RealRootVisual = ElementCompositionPreview.GetElementVisual(this);
@@ -66,10 +58,11 @@ partial class WXInkCanvasUI : WXCanvasControlUI
         InfiniteVisual.Size = new(InkLayerCore.RealCanvasSize, InkLayerCore.RealCanvasSize);
         InfiniteVisual.Offset = default;
         CoreInkPresenterHost.RootVisual = InfiniteVisual;
-        Abstracted.InkPresenter.StrokesCollected += (_, _) => UpdateBounds();
-        Abstracted.InkPresenter.StrokesErased += (_, _) => UpdateBounds();
+        var InkPresenter = (Abstracted.InkController as IEditingSession<InkControllerCore>).Core.InkPresenter;
+        InkPresenter.StrokesCollected += (_, _) => UpdateBounds();
+        InkPresenter.StrokesErased += (_, _) => UpdateBounds();
         void UpdateBounds() {
-            var rect = Abstracted.InkPresenter.StrokeContainer.BoundingRect;
+            var rect = InkPresenter.StrokeContainer.BoundingRect;
             rect.X -= InkLayerCore.RealCanvasSize / 2;
             rect.Y -= InkLayerCore.RealCanvasSize / 2;
             CanvasBoundsWriter.Value = rect;
