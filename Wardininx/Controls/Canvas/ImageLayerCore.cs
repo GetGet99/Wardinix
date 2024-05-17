@@ -12,7 +12,7 @@ using Windows.UI.Xaml.Media.Imaging;
 
 namespace Wardininx.Controls.Canvas;
 
-class WXImageCanvas : WXCanvasControl
+class ImageLayerCore : LayerCore
 {
     public Property<WXImage?> ImageProperty { get; } = new(null);
     public WXImage? Image { get => ImageProperty.Value; set => ImageProperty.Value = value; }
@@ -28,9 +28,9 @@ class WXImageCanvas : WXCanvasControl
 }
 class WXImageCanvasUI : WXCanvasControlUI
 {
-    public WXImageCanvas Abstracted { get; }
+    public ImageLayerCore Abstracted { get; }
     Property<Rect> CanvasBoundsWriter;
-    public WXImageCanvasUI(WXImageCanvas abstracted, Property<Rect> canvasBoundsWriter)
+    public WXImageCanvasUI(ImageLayerCore abstracted, Property<Rect> canvasBoundsWriter)
     {
         Abstracted = abstracted;
         CanvasBoundsWriter = canvasBoundsWriter;

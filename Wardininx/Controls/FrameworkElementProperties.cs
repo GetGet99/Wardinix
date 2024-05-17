@@ -5,10 +5,10 @@ using Windows.UI.Xaml;
 namespace Wardininx.Controls;
 public static class FrameworkElementProperties
 {
-    public static PropertyDefinitionBase<FrameworkElement, Vector2> ActualSizePropertyDefinition { get; } = new ActualSizePropertyDefinitionImpl();
-    class ActualSizePropertyDefinitionImpl : PropertyDefinitionBase<FrameworkElement, Vector2>
+    public static IReadOnlyPropertyDefinition<FrameworkElement, Vector2> ActualSizePropertyDefinition { get; } = new ActualSizePropertyDefinitionImpl();
+    class ActualSizePropertyDefinitionImpl : IReadOnlyPropertyDefinition<FrameworkElement, Vector2>
     {
-        public override PropertyBase<Vector2> GetProperty(FrameworkElement owner)
+        public IReadOnlyProperty<Vector2> GetProperty(FrameworkElement owner)
         {
             var prop = new Property<Vector2>(owner.ActualSize);
             owner.SizeChanged += (_, _) => prop.Value = owner.ActualSize;

@@ -7,9 +7,9 @@ using Get.Data.Collections;
 using Get.Data.Collections.Linq;
 using Get.Data.Collections.Update;
 namespace Wardininx.Controls.Canvas;
-class WXCanvasCollectionControl : WXCanvasControl
+class WXCanvasCollectionControl : LayerCore
 {
-    public TwoWayUpdateCollectionProperty<WXCanvasControl> Children { get; } = new();
+    public TwoWayUpdateCollectionProperty<LayerCore> Children { get; } = new();
     protected override UIElement CreateUI() => new WXCanvasCollectionControlUI(this, CanvasBoundsPropertyProtected);
 }
 partial class WXCanvasCollectionControlUI : WXCanvasControlUI
@@ -35,7 +35,7 @@ partial class WXCanvasCollectionControlUI : WXCanvasControlUI
         };
     }
 
-    readonly Dictionary<WXCanvasControl, ValueChangedHandler<Rect>> canvasBoundEventHandlers = [];
+    readonly Dictionary<LayerCore, ValueChangedHandler<Rect>> canvasBoundEventHandlers = [];
     protected override void OnApplyTemplate()
     {
         var gui = (UserControl)GetTemplateChild(App.GUIRootName);
@@ -48,9 +48,9 @@ partial class WXCanvasCollectionControlUI : WXCanvasControlUI
         {
             foreach (var action in actions)
             {
-                if (action is ItemsAddedUpdateAction<WXCanvasControl> added)
+                if (action is ItemsAddedUpdateAction<LayerCore> added)
                     OnItemsAdded(added.Items.AsEnumerable());
-                if (action is ItemsRemovedUpdateAction<WXCanvasControl> removed)
+                if (action is ItemsRemovedUpdateAction<LayerCore> removed)
                 {
                     var xs = removed.Items.AsEnumerable();
                     foreach (var x in xs)
@@ -79,7 +79,7 @@ partial class WXCanvasCollectionControlUI : WXCanvasControlUI
                 }
             }
         };
-        void OnItemsAdded(IEnumerable<WXCanvasControl> xs)
+        void OnItemsAdded(IEnumerable<LayerCore> xs)
         {
             foreach (var x in xs)
             {

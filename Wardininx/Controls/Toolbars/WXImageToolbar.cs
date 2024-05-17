@@ -22,8 +22,8 @@ namespace Wardininx.Controls.Toolbars;
 class WXImageToolbar(WXToolbar parent) : AbstractedUI
 {
     public WXToolbar Parent { get; } = parent;
-    public Property<WXImageCanvas?> ImageCanvasProperty { get; } = new(null);
-    public WXImageCanvas? ImageCanvas { get => ImageCanvasProperty.Value; set => ImageCanvasProperty.Value = value; }
+    public Property<ImageLayerCore?> ImageCanvasProperty { get; } = new(null);
+    public ImageLayerCore? ImageCanvas { get => ImageCanvasProperty.Value; set => ImageCanvasProperty.Value = value; }
 
     protected override UIElement CreateUI() => new WXImageToolbarUI(this);
 }
@@ -37,7 +37,7 @@ class WXImageToolbarUI : WXControl
         abstracted.ImageCanvasProperty.ValueChanged += ImageCanvasProperty_ValueChanged;
     }
 
-    private void ImageCanvasProperty_ValueChanged(WXImageCanvas? oldValue, WXImageCanvas? newValue)
+    private void ImageCanvasProperty_ValueChanged(ImageLayerCore? oldValue, ImageLayerCore? newValue)
     {
         if (oldValue is not null)
         {

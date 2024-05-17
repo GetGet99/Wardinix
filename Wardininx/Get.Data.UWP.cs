@@ -12,10 +12,13 @@ using Get.Data.Collections.Conversion;
 
 namespace Get.Data.Properties
 {
-    class DependencyPropertyDefinition<TOwnerType, TTargetType>(DependencyProperty dp) : PropertyDefinitionBase<TOwnerType, TTargetType> where TOwnerType : DependencyObject
+    class DependencyPropertyDefinition<TOwnerType, TTargetType>(DependencyProperty dp) : IPropertyDefinition<TOwnerType, TTargetType> where TOwnerType : DependencyObject
     {
-        public override PropertyBase<TTargetType> GetProperty(TOwnerType owner)
+        public IProperty<TTargetType> GetProperty(TOwnerType owner)
             => new DPPropertyWrapper<TOwnerType, TTargetType>(owner, dp);
+
+        IReadOnlyProperty<TTargetType> IReadOnlyPropertyDefinition<TOwnerType, TTargetType>.GetProperty(TOwnerType owner)
+            => GetProperty(owner);
     }
     class DPPropertyWrapper<TOwnerType, TTargetType> : PropertyBase<TTargetType>, IDisposable where TOwnerType : DependencyObject
     {

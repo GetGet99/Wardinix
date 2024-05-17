@@ -20,7 +20,7 @@ namespace Wardininx.Controls.Toolbars;
 class WXInkToolbar : AbstractedUI
 {
     public WXToolbar Parent { get; }
-    public Property<WXInkController?> InkControllerProperty { get; } = new(null);
+    public Property<InkController?> InkControllerProperty { get; } = new(null);
     public WXInkToolbar(WXToolbar parent)
     {
         Parent = parent;
@@ -93,7 +93,7 @@ class WXInkToolbar : AbstractedUI
                 break;
         }
     }
-    public WXInkController? InkController { get => InkControllerProperty.Value; set => InkControllerProperty.Value = value; }
+    public InkController? InkController { get => InkControllerProperty.Value; set => InkControllerProperty.Value = value; }
     protected override UIElement CreateUI() => new WXInkToolbarUI(this);
     public Property<Color> PenColorProperty { get; } = new(Colors.White);
     public Property<Color> HighlighterColorProperty { get; } = new(Colors.Yellow);

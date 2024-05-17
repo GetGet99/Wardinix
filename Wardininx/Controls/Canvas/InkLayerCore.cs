@@ -16,10 +16,10 @@ using Windows.UI.Xaml.Media;
 
 namespace Wardininx.Controls.Canvas;
 
-partial class WXInkCanvas : WXCanvasControl
+partial class InkLayerCore : LayerCore
 {
-    public WXInkController InkController { get; }
-    public WXInkCanvas(UndoManager undoManager)
+    public InkController InkController { get; }
+    public InkLayerCore(UndoManager undoManager)
     {
         InkController = new(undoManager, InkPresenter);
         InkPresenter.InputDeviceTypes = Windows.UI.Core.CoreInputDeviceTypes.Mouse | Windows.UI.Core.CoreInputDeviceTypes.Pen; //  | Windows.UI.Core.CoreInputDeviceTypes.Touch 
@@ -37,10 +37,10 @@ partial class WXInkCanvas : WXCanvasControl
 }
 partial class WXInkCanvasUI : WXCanvasControlUI
 {
-    public WXInkCanvas Abstracted { get; }
+    public InkLayerCore Abstracted { get; }
     readonly CoreInkPresenterHost CoreInkPresenterHost;
     readonly Property<Rect> CanvasBoundsWriter;
-    public WXInkCanvasUI(WXInkCanvas abstracted, CoreInkPresenterHost coreInkPresenterHost, Property<Rect> canvasBoundsWriter)
+    public WXInkCanvasUI(InkLayerCore abstracted, CoreInkPresenterHost coreInkPresenterHost, Property<Rect> canvasBoundsWriter)
     {
         Background = new SolidColorBrush(Colors.Transparent);
         Abstracted = abstracted;
@@ -54,24 +54,24 @@ partial class WXInkCanvasUI : WXCanvasControlUI
         //RootVisual.Clip = Compositor.CreateInsetClip(0, 0, 0, 0);
         RootVisual.RelativeSizeAdjustment = Vector2.One;
         UserOffsetVisual = Compositor.CreateContainerVisual();
-        UserOffsetVisual.Size = new(WXInkCanvas.RealCanvasSize, WXInkCanvas.RealCanvasSize);
+        UserOffsetVisual.Size = new(InkLayerCore.RealCanvasSize, InkLayerCore.RealCanvasSize);
         UserOffsetVisual.Offset = default;
         RootVisual.Children.InsertAtTop(UserOffsetVisual);
         InternalOffsetVisual = Compositor.CreateContainerVisual();
-        InternalOffsetVisual.Size = new(WXInkCanvas.RealCanvasSize, WXInkCanvas.RealCanvasSize);
-        InternalOffsetVisual.Offset = new(-WXInkCanvas.RealCanvasSize / 2, -WXInkCanvas.RealCanvasSize / 2, 0);
+        InternalOffsetVisual.Size = new(InkLayerCore.RealCanvasSize, InkLayerCore.RealCanvasSize);
+        InternalOffsetVisual.Offset = new(-InkLayerCore.RealCanvasSize / 2, -InkLayerCore.RealCanvasSize / 2, 0);
         UserOffsetVisual.Children.InsertAtTop(InternalOffsetVisual);
         InfiniteVisual = Compositor.CreateContainerVisual();
         InternalOffsetVisual.Children.InsertAtTop(InfiniteVisual);
-        InfiniteVisual.Size = new(WXInkCanvas.RealCanvasSize, WXInkCanvas.RealCanvasSize);
+        InfiniteVisual.Size = new(InkLayerCore.RealCanvasSize, InkLayerCore.RealCanvasSize);
         InfiniteVisual.Offset = default;
         CoreInkPresenterHost.RootVisual = InfiniteVisual;
         Abstracted.InkPresenter.StrokesCollected += (_, _) => UpdateBounds();
         Abstracted.InkPresenter.StrokesErased += (_, _) => UpdateBounds();
         void UpdateBounds() {
             var rect = Abstracted.InkPresenter.StrokeContainer.BoundingRect;
-            rect.X -= WXInkCanvas.RealCanvasSize / 2;
-            rect.Y -= WXInkCanvas.RealCanvasSize / 2;
+            rect.X -= InkLayerCore.RealCanvasSize / 2;
+            rect.Y -= InkLayerCore.RealCanvasSize / 2;
             CanvasBoundsWriter.Value = rect;
         }
         // Property Binding

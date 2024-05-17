@@ -1,12 +1,10 @@
 using Get.Data.Collections;
-using Get.Data.Helpers;
-using Get.Data.Properties;
-using Get.Data.XACL;
-using System.Numerics;
-using System.Text;
+using Get.Data.Collections.Linq;
+using Wardininx.API;
 using Wardininx.Classes;
 using Wardininx.Controls.Canvas;
 using Wardininx.Controls.Toolbars;
+using Wardininx.Core;
 using Wardininx.UndoRedos;
 using Windows.Data.Json;
 using Windows.Foundation;
@@ -16,7 +14,6 @@ using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
-
 namespace Wardininx;
 
 class MainEditor : UserControl
@@ -24,20 +21,18 @@ class MainEditor : UserControl
     UndoManager UndoManager { get; } = new();
     public MainEditor()
     {
-        WXInkCanvas CreateInkCanvas()
-        {
-            WXInkCanvas inkCanvas = new WXInkCanvas(UndoManager);
-            return inkCanvas;
-        }
+        InkLayerCore CreateInkCanvas() => new(UndoManager);
         var MicaBrush = new BlurredWallpaperMaterials.BackdropMaterial
         {
             Kind = (int)BlurredWallpaperMaterials.BackdropKind.Base,
             Theme = ActualTheme
         };
         ActualThemeChanged += (_1, _2) => MicaBrush.Theme = ActualTheme;
-        UpdateCollectionInitializer<WXCanvasControl> Layers = [CreateInkCanvas()];
-        Property<int> SelectedIndexProperty = new(0);
-        Property<Vector3> CanvasScrollOffsetProperty = new(default);
+        Document document = new(new());
+        document.Layers.Add(CreateInkCanvas().GetEditingSession(document));
+        var Layers = document.Layers;
+        var SelectedIndexProperty = document.SelectedIndexProperty;
+        var CanvasViewOffsetProperty = document.CanvasViewOffsetProperty;
         Property<float> CanvasScaleProperty = new(default);
         Content = new Grid
         {
@@ -48,7 +43,7 @@ class MainEditor : UserControl
                 .WithTwoWayUpdateSourceImmedieteBinding(
                     new()
                     {
-                        { WXCanvasController.CanvasScrollOffsetPropertyDefinition, CanvasScrollOffsetProperty },
+                        { WXCanvasController.CanvasScrollOffsetPropertyDefinition, CanvasViewOffsetProperty },
                         { WXCanvasController.CanvasScalePropertyDefinition, CanvasScaleProperty }
                     }
                 )
@@ -81,42 +76,12 @@ class MainEditor : UserControl
                             };
                             var file = await filePicker.PickSaveFileAsync();
                             if (file is null) return;
-                            var jsonArr = new JsonArray();
-                            foreach (var layer in Layers)
-                            {
-                                switch (layer)
-                                {
-                                    case WXInkCanvas inkCanvas:
-                                        {
-                                            using var ms = new MemoryStream();
-                                            await inkCanvas.InkPresenter.StrokeContainer.SaveAsync(ms.AsRandomAccessStream());
-                                            jsonArr.Add(new JsonObject
-                                    {
-                                        { "LayerType", JsonValue.CreateStringValue("Ink") },
-                                        { "InkData", JsonValue.CreateStringValue(Convert.ToBase64String(ms.ToArray())) }
-                                    });
-                                        }
-                                        break;
-                                    case WXImageCanvas imageCanvas:
-                                        {
-                                            jsonArr.Add(new JsonObject
-                                    {
-                                        { "LayerType", JsonValue.CreateStringValue("Image") },
-                                        { "ImageData", JsonValue.CreateStringValue(Convert.ToBase64String(imageCanvas.Image.ToBytes())) }
-                                    });
-                                        }
-                                        break;
-                                }
-                            }
+                            
                             using var stream = await file.OpenStreamForWriteAsync();
                             stream.Position = 0;
                             using StreamWriter writer = new(stream);
                             await writer.WriteAsync(
-                                new JsonObject()
-                                {
-                                { "Type", JsonValue.CreateStringValue("LayerContainer") },
-                                { "Layers", jsonArr }
-                                }.ToString()
+                                (document as IEditingSession<DocumentCore>).Core.ToString()
                             );
                             Focus(FocusState.Programmatic);
                         }
@@ -133,34 +98,8 @@ class MainEditor : UserControl
                             using var reader = new StreamReader(or.AsStream());
                             var json = JsonObject.Parse(await reader.ReadToEndAsync());
                             Layers.Clear();
-                            foreach (var ele in json["Layers"].GetArray())
-                            {
-                                var layer = ele.GetObject();
-                                switch (layer["LayerType"].GetString())
-                                {
-                                    case "Ink":
-                                        {
-                                            using var ms = new MemoryStream();
-                                            var bytes = Convert.FromBase64String(layer["InkData"].GetString());
-                                            await ms.WriteAsync(bytes, 0, bytes.Length);
-                                            ms.Position = 0;
-                                            var inkCanvas = new WXInkCanvas(UndoManager);
-                                            await inkCanvas.InkPresenter.StrokeContainer.LoadAsync(ms.AsRandomAccessStream());
-                                            Layers.Add(inkCanvas);
-                                        }
-                                        break;
-                                    case "Image":
-                                        {
-                                            Layers.Add(new WXImageCanvas()
-                                            {
-                                                Image = WXImage.FromBytes(Convert.FromBase64String(layer["ImageData"].GetString())),
-                                                //Offset = CanvasScrollOffsetProperty.Value,
-                                                //CanvasScale = CanvasScaleProperty.Value
-                                            });
-                                        }
-                                        break;
-                                }
-                            }
+                            var doc = await DocumentCore.CreateAsync(json);
+                            Layers.AddRange(doc.Layers);
                             UndoManager.Clear();
                             SelectedIndexProperty.Value = 0;
                             Focus(FocusState.Programmatic);
@@ -173,42 +112,21 @@ class MainEditor : UserControl
                             {
                                 var idx = SelectedIndexProperty.Value;
                                 var scale = 1 / CanvasScaleProperty.Value;
-                                var layer = new WXImageCanvas() {
+                                var layer = new ImageLayerCore() {
                                     Image = img,
-                                    Offset = CanvasScrollOffsetProperty.Value,
+                                    Offset = CanvasViewOffsetProperty.Value,
                                     CanvasScale = new(scale, scale, scale)
                                 };
-                                UndoManager.DoAndAddAction(new UndoableAction<(int Index, WXCanvasControl Layer)>("Delete Layer", (idx, layer),
-                                    x =>
-                                    {
-                                        Layers.RemoveAt(idx);
-                                        if (x.Index < Layers.Count)
-                                        {
-                                            SelectedIndexProperty.Value = idx;
-                                        }
-                                        else
-                                        {
-                                            SelectedIndexProperty.Value = Layers.Count - 1;
-                                        }
-                                    },
-                                    x =>
-                                    {
-                                        Layers.Insert(x.Index, x.Layer);
-                                        SelectedIndexProperty.Value = x.Index;
-                                    },
-                                    delegate { }
-                                ));
+                                Layers.Insert(idx, layer);
                             }
                         }
                         return;
                     case VirtualKey.Z:
                         if (IsKeyDown(VirtualKey.Shift)) goto case VirtualKey.Y;
-                        if (UndoManager.IsUndoableProperty.Value)
-                            UndoManager.Undo();
+                        if (UndoManager.IsUndoable) UndoManager.Undo();
                         return;
                     case VirtualKey.Y:
-                        if (UndoManager.IsRedoableProperty.Value)
-                            UndoManager.Redo();
+                        if (UndoManager.IsRedoable) UndoManager.Redo();
                         return;
                 }
             }
@@ -217,22 +135,9 @@ class MainEditor : UserControl
                 if (e.Key == VirtualKey.Up)
                 {
                     var idx = SelectedIndexProperty.Value;
-                    if (idx < Layers.Count - 1)
+                    if (idx < Layers.Count - 2)
                     {
-                        UndoManager.DoAndAddAction(new UndoableAction<int>("Move Layer Up", idx,
-                            idx =>
-                            {
-                                Layers.Move(idx + 1, idx);
-                                SelectedIndexProperty.Value = idx;
-                            },
-                            idx =>
-                            {
-                                Layers.Move(idx, idx + 1);
-                                SelectedIndexProperty.Value = idx + 1;
-                            },
-                            delegate { }
-                        ));
-
+                        Layers.Move(idx + 1, idx);
                     }
                     return;
                 }
@@ -241,19 +146,7 @@ class MainEditor : UserControl
                     var idx = SelectedIndexProperty.Value;
                     if (idx > 0)
                     {
-                        UndoManager.DoAndAddAction(new UndoableAction<int>("Move Layer Down", idx,
-                            idx =>
-                            {
-                                Layers.Move(idx - 1, idx);
-                                SelectedIndexProperty.Value = idx;
-                            },
-                            idx =>
-                            {
-                                Layers.Move(idx, idx - 1);
-                                SelectedIndexProperty.Value = idx - 1;
-                            },
-                            delegate { }
-                        ));
+                        Layers.Move(idx - 1, idx);
                     }
                     return;
                 }
@@ -287,27 +180,7 @@ class MainEditor : UserControl
                             if (Layers.Count <= 0) return;
                             var idx = SelectedIndexProperty.Value;
                             if (idx < 0) return;
-                            var layer = Layers[idx];
-                            UndoManager.DoAndAddAction(new UndoableAction<(int Index, WXCanvasControl Layer)>("Delete Layer", (idx, layer),
-                                x =>
-                                {
-                                    Layers.Insert(x.Index, x.Layer);
-                                    SelectedIndexProperty.Value = x.Index;
-                                },
-                                x =>
-                                {
-                                    Layers.RemoveAt(idx);
-                                    if (x.Index < Layers.Count)
-                                    {
-                                        SelectedIndexProperty.Value = idx;
-                                    }
-                                    else
-                                    {
-                                        SelectedIndexProperty.Value = Layers.Count - 1;
-                                    }
-                                },
-                                delegate { }
-                            ));
+                            Layers.RemoveAt(idx);
                             return;
                         }
                 }

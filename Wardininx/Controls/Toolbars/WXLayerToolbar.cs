@@ -20,11 +20,11 @@ namespace Wardininx.Controls.Toolbars;
 
 class WXLayerToolbar : AbstractedUI
 {
-    public TwoWayUpdateCollectionProperty<WXCanvasControl> LayersProperty { get; } = [];
-    public IUpdateCollection<WXCanvasControl> Layers { get => LayersProperty.Value; set => LayersProperty.Value = value; }
+    public TwoWayUpdateCollectionProperty<LayerCore> LayersProperty { get; } = [];
+    public IUpdateCollection<LayerCore> Layers { get => LayersProperty.Value; set => LayersProperty.Value = value; }
     public Property<int> SelectedIndexProperty { get; } = new(-1);
     public int SelectedIndex { get => SelectedIndexProperty.Value; set => SelectedIndexProperty.Value = value; }
-    public Property<WXCanvasControl?> SelectedLayerProperty { get; } = new(null);
+    public Property<LayerCore?> SelectedLayerProperty { get; } = new(null);
     public WXToolbar Parent { get; }
     public WXLayerToolbar(WXToolbar toolbar)
     {
@@ -83,8 +83,8 @@ class WXLayerToolbarUI : WXControl
                 {
 
                     var idx = Abstracted.LayersProperty.Count;
-                    var layer = new WXInkCanvas(Abstracted.Parent.UndoManager);
-                    Abstracted.Parent.UndoManager.DoAndAddAction(new UndoableAction<(int Index, WXCanvasControl Layer)>("Delete Layer", (idx, layer),
+                    var layer = new InkLayerCore(Abstracted.Parent.UndoManager);
+                    Abstracted.Parent.UndoManager.DoAndAddAction(new UndoableAction<(int Index, LayerCore Layer)>("Delete Layer", (idx, layer),
                         x =>
                         {
                             Abstracted.LayersProperty.RemoveAt(idx);
@@ -105,7 +105,7 @@ class WXLayerToolbarUI : WXControl
                         delegate { }
                     ));
                 }),
-                new WXSelectableItemsControl<WXCanvasControl>(
+                new WXSelectableItemsControl<LayerCore>(
                     new StackPanel {
                         Orientation = Orientation.Vertical,
                         HorizontalAlignment = HorizontalAlignment.Center,
@@ -160,10 +160,10 @@ class WXLayerToolbarUI : WXControl
                     )
                 }.WithTwoWayBinding(new()
                 {
-                    { WXSelectableItemsControl<WXCanvasControl>.SelectedIndexPropertyDefnition, Abstracted.SelectedIndexProperty }
+                    { WXSelectableItemsControl<LayerCore>.SelectedIndexPropertyDefnition, Abstracted.SelectedIndexProperty }
                 }).WithOneWayToSourceBinding(new()
                 {
-                    { WXSelectableItemsControl<WXCanvasControl>.SelectedValuePropertyDefnition, Abstracted.SelectedLayerProperty }
+                    { WXSelectableItemsControl<LayerCore>.SelectedValuePropertyDefnition, Abstracted.SelectedLayerProperty }
                 })
             }
         };

@@ -6,7 +6,7 @@ using Windows.UI.Input.Inking;
 using Windows.UI.Input.Inking.Core;
 
 namespace Wardininx.Classes;
-class WXInkController
+class InkController
 {
     public WXInkSelectionController Selection { get; }
     public UndoManager UndoManager { get; }
@@ -30,8 +30,10 @@ class WXInkController
             //Ruler.
         }
     }
-    public WXInkController(UndoManager UndoManager, InkPresenter InkPresenter)
+    public InkController(UndoManager UndoManager, InkPresenter InkPresenter)
     {
+        // Modify so that we can swap undomanager
+        ToDo.NotImplemented();
         this.UndoManager = UndoManager;
         this.InkPresenter = InkPresenter;
         Selection = new(this, InkPresenter);
@@ -70,7 +72,7 @@ class WXInkController
     {
         UndoableAction toRet;
         var _strokes = strokesAdded.Select(InkRefTracker.GetRef).ToArray();
-        UndoManager.AddAction(toRet = new UndoableAction<(WXInkController, InkRef[])>("Erase", (this, _strokes), UndoParam:
+        UndoManager.AddAction(toRet = new UndoableAction<(InkController, InkRef[])>("Erase", (this, _strokes), UndoParam:
             static x =>
             {
                 var (@this, strokes) = x;
@@ -98,7 +100,7 @@ class WXInkController
     {
         UndoableAction toRet;
         var _strokes = strokesErased.Select(InkRefTracker.GetRef).ToArray();
-        UndoManager.AddAction(toRet = new UndoableAction<(WXInkController, InkRef[])>("Erase", (this, _strokes), UndoParam:
+        UndoManager.AddAction(toRet = new UndoableAction<(InkController, InkRef[])>("Erase", (this, _strokes), UndoParam:
             static x =>
             {
                 var (@this, strokes) = x;
@@ -123,7 +125,7 @@ class WXInkController
         return toRet;
     }
 }
-class WXInkSelectionController(WXInkController controller, InkPresenter InkPresenter) : IList<InkStroke>
+class WXInkSelectionController(InkController controller, InkPresenter InkPresenter) : IList<InkStroke>
 {
     List<InkStroke> selectedStrokes = [];
 

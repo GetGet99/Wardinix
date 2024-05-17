@@ -56,7 +56,7 @@ class WXItemsControl<T>(UIElement element, IGDCollection<UIElement> children) : 
         => collection.Bind(@out, dataTemplate);
 }
 
-class PrimaryConstructorHelper
+public class PrimaryConstructorHelper
 {
     public PrimaryConstructorHelper()
     {
@@ -148,7 +148,7 @@ class WXSelectableItemsControl<T> : WXItemsControlBase<T, DataTemplate<WXSelecta
     }
 
     public static PropertyDefinition<WXSelectableItemsControl<T>, int> SelectedIndexPropertyDefnition { get; } = new(x => x.SelectedIndexProperty);
-    public static PropertyDefinition<WXSelectableItemsControl<T>, T?> SelectedValuePropertyDefnition { get; } = new(x => x.SelectedValueProperty);
+    public static ReadOnlyPropertyDefinition<WXSelectableItemsControl<T>, T?> SelectedValuePropertyDefnition { get; } = new(x => x.SelectedValueProperty);
     public Property<int> SelectedIndexProperty { get; } = new(-1);
     
     readonly Property<T?> _SelectedValueProperty = new(default);

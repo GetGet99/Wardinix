@@ -25,8 +25,8 @@ class WXCanvasController : AbstractedUI
     {
         CanvasBoundsProperty = new(CanvasBoundsPropertyProtected);
     }
-    public OneWayUpdateCollectionProperty<WXCanvasControl> LayersProperty { get; } = new();
-    public IUpdateReadOnlyCollection<WXCanvasControl> Layers { get => LayersProperty.Value; set => LayersProperty.Value = value; }
+    public OneWayUpdateCollectionProperty<LayerCore> LayersProperty { get; } = new();
+    public IUpdateReadOnlyCollection<LayerCore> Layers { get => LayersProperty.Value; set => LayersProperty.Value = value; }
     protected readonly Property<Rect> CanvasBoundsPropertyProtected = new(default);
     public static PropertyDefinition<WXCanvasController, Rect> CanvasBoundsPropertyDefinition { get; }
     public static PropertyDefinition<WXCanvasController, Vector3> CanvasScrollOffsetPropertyDefinition { get; }
@@ -61,7 +61,7 @@ class WXCanvasController : AbstractedUI
 }
 partial class WXCanvasControllerUI : Control
 {
-    readonly PropertyBase<Vector2> ActualSizeProperty;
+    readonly IReadOnlyProperty<Vector2> ActualSizeProperty;
     public WXCanvasController Abstracted { get; }
     readonly Property<Rect> CanvasBoundsWriter;
     public WXCanvasControllerUI(WXCanvasController abstracted, Property<Rect> canvasBoundsWriter)
@@ -96,7 +96,7 @@ partial class WXCanvasControllerUI : Control
             .Select(x => x.Width == 0 && x.Height == 0 ? new Rect(-0.5, -0.5, 1, 1) : x)
             .Zip<Rect, Vector2, Rect>(
             actualVirtualSizeBinding,
-            (bounds, size) => new(Math.Max(-WXInkCanvas.RealCanvasSize / 2, bounds.Left - size.X), Math.Max(-WXInkCanvas.RealCanvasSize / 2, bounds.Top - size.Y), bounds.Width + size.X * 2, bounds.Height + size.Y * 2)
+            (bounds, size) => new(Math.Max(-InkLayerCore.RealCanvasSize / 2, bounds.Left - size.X), Math.Max(-InkLayerCore.RealCanvasSize / 2, bounds.Top - size.Y), bounds.Width + size.X * 2, bounds.Height + size.Y * 2)
         );
         gui.Content = new Grid
         {
@@ -112,16 +112,16 @@ partial class WXCanvasControllerUI : Control
                 {
                     OneWayToSource =
                     {
-                        { WXCanvasControl.CanvasBoundsPropertyDefinition.As<WXCanvasCollectionControl>(), boundsBinding }
+                        { LayerCore.CanvasBoundsPropertyDefinition.As<LayerCore, Rect, WXCanvasCollectionControl>(), boundsBinding }
                     },
                     OneWay =
                     {
                         {
-                            WXCanvasControl.CanvasScrollOffsetPropertyDefinition.As<WXCanvasCollectionControl>(),
+                            LayerCore.CanvasScrollOffsetPropertyDefinition.As<LayerCore, Vector3, WXCanvasCollectionControl>(),
                             viewOffsetBinding.Select(x => -x)
                         },
                         {
-                            WXCanvasControl.CanvasScalePropertyDefinition.As<WXCanvasCollectionControl>(),
+                            LayerCore.CanvasScalePropertyDefinition.As<LayerCore, Vector3, WXCanvasCollectionControl>(),
                             scaleBinding.Select(x => new Vector3(x, x, 0))
                         }
                     }
@@ -175,7 +175,7 @@ partial class WXCanvasControllerUI : Control
             },
             Background = new SolidColorBrush(Colors.Transparent)
         }
-        .WithCustomCode(x => new ElementInteractionTracker(x) { InteractionTracker = { MinPosition = new(-WXInkCanvas.RealCanvasSize / 2, -WXInkCanvas.RealCanvasSize / 2, 0), MaxPosition = new(WXInkCanvas.RealCanvasSize / 2, WXInkCanvas.RealCanvasSize / 2, 0) } }
+        .WithCustomCode(x => new ElementInteractionTracker(x) { InteractionTracker = { MinPosition = new(-InkLayerCore.RealCanvasSize / 2, -InkLayerCore.RealCanvasSize / 2, 0), MaxPosition = new(InkLayerCore.RealCanvasSize / 2, InkLayerCore.RealCanvasSize / 2, 0) } }
             .WithCustomCode(x =>
                 x.InteractionTracker.WithOneWayBinding(new()
                 {

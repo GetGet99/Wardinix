@@ -23,12 +23,12 @@ class WXToolbar : AbstractedUI
         UndoRedoToolbar = new(undoManager);
         InkToolbar.InkControllerProperty.Bind(
             LayerToolbar.LayersProperty.ElementAt(LayerToolbar.SelectedIndexProperty)
-            .Select(x => (x as WXInkCanvas)?.InkController),
+            .Select(x => (x as InkLayerCore)?.InkController),
             ReadOnlyBindingModes.OneWay
         );
         ImageToolbar.ImageCanvasProperty.Bind(
             LayerToolbar.LayersProperty.ElementAt(LayerToolbar.SelectedIndexProperty)
-            .Select(x => x as WXImageCanvas),
+            .Select(x => x as ImageLayerCore),
             ReadOnlyBindingModes.OneWay
         );
     }
