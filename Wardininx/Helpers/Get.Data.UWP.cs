@@ -1,12 +1,7 @@
-﻿using Get.Data.Collections;
-using Get.Data.Collections.Implementation;
-using Get.Data.Collections.Update;
-using System.Diagnostics;
+﻿using Get.Data.Collections.Update;
 using System.Runtime.CompilerServices;
-using Wardininx;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
 using Get.Data.DataTemplates;
 using Get.Data.Collections.Conversion;
 

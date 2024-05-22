@@ -1,17 +1,17 @@
-using Get.Data.Properties;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Wardininx.API;
+using Wardininx.Controls;
 using Windows.Foundation;
 using Windows.UI.Xaml;
-using Windows.UI.Xaml.Controls;
 
-namespace Wardininx.Controls.Canvas;
-public abstract class LayerCore : AbstractedUI {
+namespace Wardininx.Core.Layers;
+
+public abstract class LayerCore : AbstractedUIDocument
+{
     public LayerCore()
     {
         CanvasBoundsProperty = new(CanvasBoundsPropertyProtected);
-        IsSelectedProperty.ValueChanged += (_, @new) => UnsafeGetElement<UIElement>().IsHitTestVisible = @new;
         IsSelected = false;
     }
     protected readonly Property<Rect> CanvasBoundsPropertyProtected = new(default);
@@ -48,11 +48,5 @@ public abstract class LayerCore : AbstractedUI {
     public Property<bool> IsSelectedProperty { get; } = new(default);
     public bool IsSelected { get => IsSelectedProperty.Value; set => IsSelectedProperty.Value = value; }
 
-    public ILayer GetEditingSession(Document owner)
-    {
-        return ToDo.NotImplemented<ILayer>();
-    }
-}
-abstract partial class WXCanvasControlUI : WXControl
-{
+    public abstract ILayer GetEditingSession(Document owner);
 }

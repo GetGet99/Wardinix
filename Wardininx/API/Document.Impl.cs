@@ -1,9 +1,5 @@
-using Get.Data.Collections.Update;
-using Get.Data.Collections;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using Wardininx.Controls.Canvas;
-using Wardininx.UndoRedos;
 using Wardininx.Core;
 
 namespace Wardininx.API;
@@ -37,7 +33,15 @@ partial class Document
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => CanvasViewScaleProperty.Value = value;
     }
+    public bool IsActiveView
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => IsActiveViewProperty.Value;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => IsActiveViewProperty.Value = value;
+    }
     public PropertyDefinition<Document, int> SelectedIndexPropertyDefinition { get; } = new(x => x.SelectedIndexProperty);
     public PropertyDefinition<Document, Vector3> CanvasViewOffsetPropertyDefinition { get; } = new(x => x.CanvasViewOffsetProperty);
     public PropertyDefinition<Document, float> CanvasViewScalePropertyDefinition { get; } = new(x => x.CanvasViewScaleProperty);
+    public PropertyDefinition<Document, bool> IsActiveViewPropertyDefinition { get; } = new(x => x.IsActiveViewProperty);
 }

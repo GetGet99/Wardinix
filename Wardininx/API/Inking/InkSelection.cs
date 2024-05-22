@@ -1,92 +1,90 @@
-using Get.Data.Collections.Implementation;
-using Get.Data.Collections;
 using Wardininx.Core.Inking;
 using Windows.Foundation;
-using Windows.UI.Input.Inking;
-
+using Get.Data.Collections.Linq;
 namespace Wardininx.API.Inking;
 
-public class InkSelection(InkController controller, InkControllerCore Core)
+public readonly struct InkSelection(Document document, InkControllerCore Core)
 {
-    List<InkStroke> selectedStrokes = [];
+    public bool IsEmpty => Core.Selection.IsEmpty;
 
-    public bool IsEmpty => selectedStrokes.Count is 0;
-
-    public int Count => selectedStrokes.Count;
+    public int Count => Core.Selection.Count;
 
     public Rect SelectWithPolyLine(IEnumerable<Point> points)
-    {
-        var region = Core.InkPresenter.StrokeContainer.SelectWithPolyLine(points);
-        ResetSelectionCache();
-        return region;
-    }
+        => Core.Selection.SelectWithPolyLine(points);
 
     public Rect SelectWithLine(Point from, Point to)
-    {
-        var region = Core.InkPresenter.StrokeContainer.SelectWithLine(from, to);
-        ResetSelectionCache();
-        return region;
-    }
-    void ResetSelectionCache()
-    {
-        selectedStrokes.Clear();
-        foreach (var stroke in Core.InkPresenter.StrokeContainer.GetStrokes())
-        {
-            if (stroke.Selected) selectedStrokes.Add(stroke);
-        }
-    }
-
+        => Core.Selection.SelectWithLine(from, to);
     public void Cut()
     {
         Copy();
-        Delete();
+        DeleteSelected();
     }
     public void Copy()
-    {
-        Core.InkPresenter.StrokeContainer.CopySelectedToClipboard();
-    }
+        => Core.Selection.Copy();
     public void Duplicate()
     {
-        // Implement Undo/Redo system
-        ToDo.NotImplemented();
-        var oldSelectedStrokes = selectedStrokes;
-        selectedStrokes = new(selectedStrokes.Count);
-        ToDo.NotImplemented();
-        foreach (var stroke in oldSelectedStrokes)
-        {
-            var newStroke = stroke.Clone();
-            selectedStrokes.Add(newStroke);
-            newStroke.Selected = true;
-            stroke.Selected = false;
-        }
-        Core.InkPresenter.StrokeContainer.AddStrokes(selectedStrokes);
+        var newStrokes = Core.Selection.Duplicate();
+        var newStrokesRef = Core.InkRefTracker.GetRefs(newStrokes);
+        var self = this;
+        var c = Core;
+        document.UndoManager.AddAction(new(
+            "InkLayer.Selection.Duplicate()",
+            Undo: delegate
+            {
+                // clear selection
+                self.ClearSelection();
+                foreach (var inkRef in newStrokesRef)
+                {
+                    inkRef.InkStroke.Selected = true;
+                    // create new, and deselect the copy
+                    inkRef.CreateNew().Selected = false;
+                }
+                c.InkPresenter.StrokeContainer.DeleteSelected();
+            },
+            Redo: delegate
+            {
+                self.ClearSelection();
+                foreach (var inkRef in newStrokesRef)
+                {
+                    c.InkPresenter.StrokeContainer.AddStroke(inkRef.InkStroke);
+                }
+                c.InkPresenter.StrokeContainer.DeleteSelected();
+            },
+            Cleanup: delegate { }
+        ));
     }
-
-    public void Clear()
+    public void ClearSelection() => Core.Selection.Clear();
+    public void DeleteSelected()
     {
-        foreach (var s in selectedStrokes)
-        {
-            s.Selected = false;
-        }
-        selectedStrokes.Clear();
-    }
-    public void Delete()
-    {
-        // Implement Undo/Redo system
-        ToDo.NotImplemented();
-        Core.InkPresenter.StrokeContainer.DeleteSelected();
-        selectedStrokes.Clear();
-    }
-
-    public void Insert(int index, InkStroke item)
-    {
-        selectedStrokes.Insert(index, item);
-        item.Selected = true;
-    }
-
-    public void RemoveAt(int index)
-    {
-        selectedStrokes[index].Selected = false;
-        selectedStrokes.RemoveAt(index);
+        // Does not restore back 100% (ordering is not right because there is no Insert() command for strokecontainer).
+        ToDo.Note();
+        var strokesRef = Core.InkRefTracker.GetRefs(Core.Selection.AsEnumerable());
+        var self = this;
+        var c = Core;
+        document.UndoManager.DoAndAddAction(new(
+            "InkLayer.Selection.DeleteSelected()",
+            Redo: delegate
+            {
+                // clear selection
+                self.ClearSelection();
+                foreach (var inkRef in strokesRef)
+                {
+                    inkRef.InkStroke.Selected = true;
+                    // create new, and deselect the copy
+                    inkRef.CreateNew().Selected = false;
+                }
+                c.InkPresenter.StrokeContainer.DeleteSelected();
+            },
+            Undo: delegate
+            {
+                self.ClearSelection();
+                foreach (var inkRef in strokesRef)
+                {
+                    c.InkPresenter.StrokeContainer.AddStroke(inkRef.InkStroke);
+                }
+                c.InkPresenter.StrokeContainer.DeleteSelected();
+            },
+            Cleanup: delegate { }
+        ));
     }
 }

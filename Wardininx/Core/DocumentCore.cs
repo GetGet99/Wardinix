@@ -2,9 +2,9 @@ using Get.Data.Collections;
 using Get.Data.Collections.Update;
 using Get.Data.Collections.Linq;
 using Wardininx.Classes;
-using Wardininx.Controls.Canvas;
 using Wardininx.UndoRedos;
 using Windows.Data.Json;
+using Wardininx.Core.Layers;
 
 namespace Wardininx.Core;
 
@@ -35,8 +35,8 @@ public class DocumentCore : IRawDocumentEdit
                         var bytes = Convert.FromBase64String(layer["InkData"].GetString());
                         await ms.WriteAsync(bytes, 0, bytes.Length);
                         ms.Position = 0;
-                        var inkCanvas = new InkLayerCore(UndoManager);
-                        await inkCanvas.InkPresenter.StrokeContainer.LoadAsync(ms.AsRandomAccessStream());
+                        var inkCanvas = new InkLayerCore();
+                        await inkCanvas.InkControllerCore.InkPresenter.StrokeContainer.LoadAsync(ms.AsRandomAccessStream());
                         toReturn._layers.Add(inkCanvas);
                     }
                     break;
@@ -64,7 +64,7 @@ public class DocumentCore : IRawDocumentEdit
                 case InkLayerCore inkCanvas:
                     {
                         using var ms = new MemoryStream();
-                        await inkCanvas.InkPresenter.StrokeContainer.SaveAsync(ms.AsRandomAccessStream());
+                        await inkCanvas.InkControllerCore.InkPresenter.StrokeContainer.SaveAsync(ms.AsRandomAccessStream());
                         jsonArr.Add(new JsonObject
                                     {
                                         { "LayerType", JsonValue.CreateStringValue("Ink") },

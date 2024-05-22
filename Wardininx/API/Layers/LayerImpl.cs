@@ -2,7 +2,7 @@ using Get.Data.Bindings;
 using System.Numerics;
 using Wardininx;
 using Wardininx.API;
-using Wardininx.Controls.Canvas;
+using Wardininx.Core.Layers;
 
 readonly struct LayerImpl(Document d, LayerCore layerCore) : ILayer
 {
@@ -16,6 +16,10 @@ readonly struct LayerImpl(Document d, LayerCore layerCore) : ILayer
     public Vector3 Scale { get => OffsetProperty.CurrentValue; set => ScaleProperty.CurrentValue = value; }
 
     public LayerCore Core => layerCore;
+
+    public IProperty<bool> IsSelectedProperty => layerCore.IsSelectedProperty;
+
+    public bool IsSelected { get => layerCore.IsSelected; set => layerCore.IsSelected = value; }
 }
 readonly struct LayerPropertyWrapper(Document d, IProperty<Vector3> original) : IProperty<Vector3>
 {

@@ -3,8 +3,11 @@ using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Wardininx.UndoRedos;
 using Get.Data.Bindings;
-using Wardininx.Controls.Canvas;
+using Wardininx.Controls.Layers;
 using Get.Data.Bindings.Linq;
+using Wardininx.API;
+using Wardininx.Core.Layers;
+using Wardininx.API.Inking;
 namespace Wardininx.Controls.Toolbars;
 
 class WXToolbar : AbstractedUI
@@ -14,21 +17,21 @@ class WXToolbar : AbstractedUI
     public WXImageToolbar ImageToolbar { get; }
     public WXLayerToolbar LayerToolbar { get; }
     public WXUndoRedoToolbar UndoRedoToolbar { get; }
-    public WXToolbar(UndoManager undoManager)
+    public WXToolbar(UndoManager undoManager, Document doc)
     {
         UndoManager = undoManager;
         InkToolbar = new(this);
         ImageToolbar = new(this);
-        LayerToolbar = new(this);
+        LayerToolbar = new(this, doc);
         UndoRedoToolbar = new(undoManager);
         InkToolbar.InkControllerProperty.Bind(
             LayerToolbar.LayersProperty.ElementAt(LayerToolbar.SelectedIndexProperty)
-            .Select(x => (x as InkLayerCore)?.InkController),
+            .Select(x => x is InkLayer ink ? ink.InkController : default(InkController?)),
             ReadOnlyBindingModes.OneWay
         );
-        ImageToolbar.ImageCanvasProperty.Bind(
+        ImageToolbar.ImageLayerProperty.Bind(
             LayerToolbar.LayersProperty.ElementAt(LayerToolbar.SelectedIndexProperty)
-            .Select(x => x as ImageLayerCore),
+            .Select(x => x is ImageLayer img ? img : default(ImageLayer?)),
             ReadOnlyBindingModes.OneWay
         );
     }

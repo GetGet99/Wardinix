@@ -1,6 +1,6 @@
 using System.Numerics;
 using Wardininx.Classes;
-using Wardininx.Controls.Canvas;
+using Wardininx.Core.Layers;
 
 namespace Wardininx.API;
 readonly struct ImageLayer(Document document, ImageLayerCore imageLayerCore) : ILayer, IEditingSession<ImageLayerCore>
@@ -19,5 +19,10 @@ readonly struct ImageLayer(Document document, ImageLayerCore imageLayerCore) : I
     public Vector3 Scale { get => ScaleProperty.CurrentValue; set => ScaleProperty.CurrentValue = value; }
 
     public ImageLayerCore Core => imageLayerCore;
+
+    public IProperty<bool> IsSelectedProperty => new LayerImpl(document, imageLayerCore).IsSelectedProperty;
+
+    public bool IsSelected { get => IsSelectedProperty.CurrentValue; set => IsSelectedProperty.CurrentValue = value; }
+
     LayerCore IEditingSession<LayerCore>.Core => imageLayerCore;
 }

@@ -1,10 +1,6 @@
 #nullable enable
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Wardininx.Controls.Canvas;
-using Get.Data.XACL;
-using Get.Data.Properties;
-using Get.Data.Helpers;
 using Get.Data.Collections;
 using Windows.UI.ViewManagement;
 using Windows.UI.Xaml.Media;
@@ -12,22 +8,24 @@ using Get.Symbols;
 using Windows.UI;
 using Get.Data.Collections.Update;
 using Get.Data.Bindings.Linq;
-using System.Diagnostics;
 using Get.Data.Collections.Conversion;
 using Get.Data.Collections.Linq;
-using Wardininx.UndoRedos;
+using Wardininx.API;
+using Wardininx.Core.Layers;
 namespace Wardininx.Controls.Toolbars;
 
 class WXLayerToolbar : AbstractedUI
 {
-    public TwoWayUpdateCollectionProperty<LayerCore> LayersProperty { get; } = [];
-    public IUpdateCollection<LayerCore> Layers { get => LayersProperty.Value; set => LayersProperty.Value = value; }
-    public Property<int> SelectedIndexProperty { get; } = new(-1);
+    public TwoWayUpdateCollectionProperty<ILayer> LayersProperty { get; } = [];
+    public IUpdateCollection<ILayer> Layers { get => LayersProperty.Value; set => LayersProperty.Value = value; }
+    public Property<int> SelectedIndexProperty { get; } = new(-1) { DebugName = "LayerToolbar.SelectedIndex" };
     public int SelectedIndex { get => SelectedIndexProperty.Value; set => SelectedIndexProperty.Value = value; }
-    public Property<LayerCore?> SelectedLayerProperty { get; } = new(null);
+    public Property<ILayer?> SelectedLayerProperty { get; } = new(null);
     public WXToolbar Parent { get; }
-    public WXLayerToolbar(WXToolbar toolbar)
+    public Document Document { get; }
+    public WXLayerToolbar(WXToolbar toolbar, Document doc)
     {
+        Document = doc;
         Parent = toolbar;
         SelectedLayerProperty.ValueChanged += (old, @new) =>
         {
@@ -83,29 +81,9 @@ class WXLayerToolbarUI : WXControl
                 {
 
                     var idx = Abstracted.LayersProperty.Count;
-                    var layer = new InkLayerCore(Abstracted.Parent.UndoManager);
-                    Abstracted.Parent.UndoManager.DoAndAddAction(new UndoableAction<(int Index, LayerCore Layer)>("Delete Layer", (idx, layer),
-                        x =>
-                        {
-                            Abstracted.LayersProperty.RemoveAt(idx);
-                            if (x.Index < Abstracted.LayersProperty.Count)
-                            {
-                                Abstracted.SelectedIndex = idx;
-                            }
-                            else
-                            {
-                                Abstracted.SelectedIndex = Abstracted.LayersProperty.Count - 1;
-                            }
-                        },
-                        x =>
-                        {
-                            Abstracted.LayersProperty.Insert(x.Index, x.Layer);
-                            Abstracted.SelectedIndex = x.Index;
-                        },
-                        delegate { }
-                    ));
+                    Abstracted.Document.Layers.AddSelect(new InkLayerCore());
                 }),
-                new WXSelectableItemsControl<LayerCore>(
+                new WXSelectableItemsControl<ILayer>(
                     new StackPanel {
                         Orientation = Orientation.Vertical,
                         HorizontalAlignment = HorizontalAlignment.Center,
@@ -160,10 +138,10 @@ class WXLayerToolbarUI : WXControl
                     )
                 }.WithTwoWayBinding(new()
                 {
-                    { WXSelectableItemsControl<LayerCore>.SelectedIndexPropertyDefnition, Abstracted.SelectedIndexProperty }
+                    { WXSelectableItemsControl<ILayer>.SelectedIndexPropertyDefnition, Abstracted.SelectedIndexProperty }
                 }).WithOneWayToSourceBinding(new()
                 {
-                    { WXSelectableItemsControl<LayerCore>.SelectedValuePropertyDefnition, Abstracted.SelectedLayerProperty }
+                    { WXSelectableItemsControl<ILayer>.SelectedValuePropertyDefnition, Abstracted.SelectedLayerProperty }
                 })
             }
         };

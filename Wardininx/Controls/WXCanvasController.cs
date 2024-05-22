@@ -2,10 +2,6 @@ using Get.Data.Collections;
 using Get.Data.Collections.Update;
 using Get.Data.Collections.Linq;
 using Get.Data.Bindings.Linq;
-using Get.Data.Helpers;
-using Get.Data.Properties;
-using Get.Data.XACL;
-using Get.Data;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Windows.Foundation;
@@ -16,11 +12,13 @@ using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
 using Windows.UI.Xaml.Media;
 using Get.Data.Bindings;
+using Wardininx.Core.Layers;
+using Wardininx.API;
 
-namespace Wardininx.Controls.Canvas;
-class WXCanvasController : AbstractedUI
+namespace Wardininx.Controls.Layers;
+class WXCanvasController : AbstractedUIDocument
 {
-    protected override UIElement CreateUI() => new WXCanvasControllerUI(this, CanvasBoundsPropertyProtected);
+    protected override UIElement CreateUI(Document doc) => new WXCanvasControllerUI(this, doc, CanvasBoundsPropertyProtected);
     public WXCanvasController()
     {
         CanvasBoundsProperty = new(CanvasBoundsPropertyProtected);
@@ -57,15 +55,17 @@ class WXCanvasController : AbstractedUI
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => CanvasScrollOffsetProperty.Value = value;
     }
-    public Property<WXCanvasControlUI?> SelectedCanvasProperty { get; } = new(null);
+    public Property<LayerControl?> SelectedCanvasProperty { get; } = new(null);
 }
 partial class WXCanvasControllerUI : Control
 {
     readonly IReadOnlyProperty<Vector2> ActualSizeProperty;
     public WXCanvasController Abstracted { get; }
     readonly Property<Rect> CanvasBoundsWriter;
-    public WXCanvasControllerUI(WXCanvasController abstracted, Property<Rect> canvasBoundsWriter)
+    readonly Document doc;
+    public WXCanvasControllerUI(WXCanvasController abstracted, Document doc, Property<Rect> canvasBoundsWriter)
     {
+        this.doc = doc;
         CanvasBoundsWriter = canvasBoundsWriter;
         Abstracted = abstracted;
         ActualSizeProperty = FrameworkElementProperties.ActualSizePropertyDefinition.GetProperty(this);
@@ -104,7 +104,7 @@ partial class WXCanvasControllerUI : Control
             RowDefinitions = { new(), new() { Height = GridLength.Auto } },
             Children =
             {
-                new WXCanvasCollectionControl()
+                new GroupLayerCore()
                 {
                     Children = { CollectionItemsBinding.Create(Abstracted.LayersProperty) }
                 }
@@ -112,20 +112,20 @@ partial class WXCanvasControllerUI : Control
                 {
                     OneWayToSource =
                     {
-                        { LayerCore.CanvasBoundsPropertyDefinition.As<LayerCore, Rect, WXCanvasCollectionControl>(), boundsBinding }
+                        { LayerCore.CanvasBoundsPropertyDefinition.As<LayerCore, Rect, GroupLayerCore>(), boundsBinding }
                     },
                     OneWay =
                     {
                         {
-                            LayerCore.CanvasScrollOffsetPropertyDefinition.As<LayerCore, Vector3, WXCanvasCollectionControl>(),
+                            LayerCore.CanvasScrollOffsetPropertyDefinition.As<LayerCore, Vector3, GroupLayerCore>(),
                             viewOffsetBinding.Select(x => -x)
                         },
                         {
-                            LayerCore.CanvasScalePropertyDefinition.As<LayerCore, Vector3, WXCanvasCollectionControl>(),
+                            LayerCore.CanvasScalePropertyDefinition.As<LayerCore, Vector3, GroupLayerCore>(),
                             scaleBinding.Select(x => new Vector3(x, x, 0))
                         }
                     }
-                }).UnsafeGetElement<UIElement>(),
+                }).UnsafeGetElement<UIElement>(doc),
                 new ScrollBar
                 {
                     IndicatorMode = ScrollingIndicatorMode.MouseIndicator,

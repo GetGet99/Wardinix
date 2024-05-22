@@ -20,17 +20,18 @@ public class InkControllerCore
     readonly Compositor Compositor;
     public InkControllerCore() : this(Window.Current.Compositor)
     {
+        Selection = new(this);
     }
+    public InkSelectionCore Selection { get; }
     public InkControllerCore(Compositor compositor)
     {
         Compositor = Window.Current.Compositor;
         InkPresenter = Host.InkPresenter;
         CoreWetStrokeUpdateSource = CoreWetStrokeUpdateSource.Create(InkPresenter);
         InternalVisual = Compositor.CreateContainerVisual();
+        InternalVisual.Comment = "InkControllerInkingVisual";
         InternalVisual.RelativeSizeAdjustment = new(1, 1);
         Host.RootVisual = InternalVisual;
-        // Modify so that we can swap undomanager
-        ToDo.NotImplemented();
 
     }
     ContainerVisual? _editingView;
@@ -50,7 +51,7 @@ public class InkControllerCore
             {
                 FreeRedirectVisuals.Enqueue((RedirectVisual)value.Children.First());
                 value.Children.RemoveAll();
-                value.Children.InsertAtTop(GetRedirectVisual());
+                value.Children.InsertAtTop(InternalVisual);
             }
             EditingViewChanged?.Invoke();
         }

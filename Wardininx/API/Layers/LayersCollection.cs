@@ -1,22 +1,23 @@
-using Get.Data.Collections;
-using Get.Data.Collections.Linq;
 using Get.Data.Collections.Update;
-using Wardininx.Controls.Canvas;
+using Wardininx.Core.Layers;
 
 namespace Wardininx.API;
 
 public partial class LayersCollection(Document document, IUpdateCollection<LayerCore> layerCores) : IUpdateCollection<ILayer>, IUpdateCollection<LayerCore>
 {
     public void AddSelect(ILayer item) => InsertSelect(Count, item);
-    
+    public void AddSelect(LayerCore item) => InsertSelect(Count, item);
+
     public void InsertSelect(int index, ILayer item)
+        => InsertSelect(index, item.Core);
+    public void InsertSelect(int index, LayerCore item)
     {
         var oldSelection = document.SelectedIndex;
         document.UndoManager.DoAndAddAction(new(
             ActionName: $"Layers.InsertSelect({index}, {item})",
             Redo: delegate
             {
-                layerCores.Insert(index, item.Core);
+                layerCores.Insert(index, item);
                 document.SelectedIndex = index;
             },
             Undo: delegate

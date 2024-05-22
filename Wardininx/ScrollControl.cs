@@ -1,3 +1,0 @@
-//namespace Wardininx;
-
-//class 

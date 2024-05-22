@@ -2,7 +2,7 @@ using Get.Data.Collections;
 using Get.Data.Collections.Linq;
 using Wardininx.API;
 using Wardininx.Classes;
-using Wardininx.Controls.Canvas;
+using Wardininx.Controls.Layers;
 using Wardininx.Controls.Toolbars;
 using Wardininx.Core;
 using Wardininx.UndoRedos;
@@ -44,8 +44,8 @@ class MainEditor : UserControl
                         { WXCanvasController.CanvasScalePropertyDefinition, CanvasScaleProperty }
                     }
                 )
-                .UnsafeGetElement<UIElement>(),
-                new WXToolbar(UndoManager) {
+                .UnsafeGetElement<UIElement>(document),
+                new WXToolbar(UndoManager, document) {
                     LayerToolbar = { Layers = Layers }
                 }
                 .AssignTo(out var toolbar)
@@ -109,11 +109,12 @@ class MainEditor : UserControl
                             {
                                 var idx = SelectedIndexProperty.Value;
                                 var scale = 1 / CanvasScaleProperty.Value;
-                                var layer = new ImageLayerCore() {
+                                var layer = new ImageLayer(document, new Core.Layers.ImageLayerCore()
+                                {
                                     Image = img,
                                     Offset = CanvasViewOffsetProperty.Value,
                                     CanvasScale = new(scale, scale, scale)
-                                };
+                                });
                                 Layers.Insert(idx, layer);
                             }
                         }

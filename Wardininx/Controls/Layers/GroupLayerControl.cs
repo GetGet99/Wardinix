@@ -6,33 +6,32 @@ using Windows.UI.Xaml;
 using Get.Data.Collections;
 using Get.Data.Collections.Linq;
 using Get.Data.Collections.Update;
-namespace Wardininx.Controls.Canvas;
-class WXCanvasCollectionControl : LayerCore
+using Wardininx.Core.Layers;
+using Wardininx.API;
+namespace Wardininx.Controls.Layers;
+partial class GroupLayerControl : LayerControl
 {
-    public TwoWayUpdateCollectionProperty<LayerCore> Children { get; } = new();
-    protected override UIElement CreateUI() => new WXCanvasCollectionControlUI(this, CanvasBoundsPropertyProtected);
-}
-partial class WXCanvasCollectionControlUI : WXCanvasControlUI
-{
-    public WXCanvasCollectionControl Abstracted { get; }
+    public GroupLayerCore Core { get; }
     readonly Property<Rect> CanvasBoundsWriter;
-    public WXCanvasCollectionControlUI(WXCanvasCollectionControl abstracted, Property<Rect> canvasBoundsWriter)
+    readonly Document document;
+    public GroupLayerControl(GroupLayerCore core, Document document, Property<Rect> canvasBoundsWriter) : base(core)
     {
-        Abstracted = abstracted;
+        Core = core;
         CanvasBoundsWriter = canvasBoundsWriter;
         Template = App.GUIControlTemplate;
         var transform = new CompositeTransform();
         RenderTransform = transform;
-        abstracted.CanvasScaleProperty.ValueChanged += (_, value) =>
+        core.CanvasScaleProperty.ValueChanged += (_, value) =>
         {
             transform.ScaleX = value.X;
             transform.ScaleY = value.Y;
         };
-        abstracted.CanvasScrollOffsetProperty.ValueChanged += (_, value) =>
+        core.CanvasScrollOffsetProperty.ValueChanged += (_, value) =>
         {
             transform.TranslateX = value.X;
             transform.TranslateY = value.Y;
         };
+        this.document = document;
     }
 
     readonly Dictionary<LayerCore, ValueChangedHandler<Rect>> canvasBoundEventHandlers = [];
@@ -41,10 +40,10 @@ partial class WXCanvasCollectionControlUI : WXCanvasControlUI
         var gui = (UserControl)GetTemplateChild(App.GUIRootName);
         gui.Content = new Grid()
         {
-            Children = { Abstracted.Children.AsUpdate().Select(x => x.UnsafeGetElement<UIElement>()) },
+            Children = { Core.Children.AsUpdate().Select(x => x.UnsafeGetElement<UIElement>(document)) },
             Background = new SolidColorBrush(Colors.Transparent)
         };
-        Abstracted.Children.ItemsChanged += (actions) =>
+        Core.Children.ItemsChanged += (actions) =>
         {
             foreach (var action in actions)
             {
@@ -57,7 +56,7 @@ partial class WXCanvasCollectionControlUI : WXCanvasControlUI
                     {
                         if (canvasBoundEventHandlers.Remove(x, out var ev))
                             x.CanvasBoundsProperty.ValueChanged -= ev;
-                        var curBounds = Abstracted.CanvasBounds;
+                        var curBounds = Core.CanvasBounds;
                         var removedBounds = x.CanvasBounds;
                         if (removedBounds.Top == curBounds.Top ||
                             removedBounds.Bottom == curBounds.Bottom ||
@@ -65,11 +64,11 @@ partial class WXCanvasCollectionControlUI : WXCanvasControlUI
                             removedBounds.Right == curBounds.Right)
                         {
                             Rect r = default;
-                            if (Abstracted.Children.Count > 1)
+                            if (Core.Children.Count > 1)
                             {
-                                r = Abstracted.Children[0].CanvasBounds;
+                                r = Core.Children[0].CanvasBounds;
                             }
-                            foreach (var c in Abstracted.Children.AsUpdate().AsEnumerable())
+                            foreach (var c in Core.Children.AsUpdate().AsEnumerable())
                             {
                                 if (c.CanvasBounds != default) r.Union(c.CanvasBounds);
                             }
@@ -83,17 +82,17 @@ partial class WXCanvasCollectionControlUI : WXCanvasControlUI
         {
             foreach (var x in xs)
             {
-                var curBounds = Abstracted.CanvasBounds;
+                var curBounds = Core.CanvasBounds;
                 curBounds.Union(x.CanvasBounds);
                 CanvasBoundsWriter.Value = curBounds;
                 void ev(Rect oldValue, Rect newValue)
                 {
                     Rect r = default;
-                    if (Abstracted.Children.Count > 1)
+                    if (Core.Children.Count > 1)
                     {
-                        r = Abstracted.Children[0].CanvasBounds;
+                        r = Core.Children[0].CanvasBounds;
                     }
-                    foreach (var c in Abstracted.Children.AsUpdate().AsEnumerable())
+                    foreach (var c in Core.Children.AsUpdate().AsEnumerable())
                     {
                         if (c.CanvasBounds != default) r.Union(c.CanvasBounds);
                     }
@@ -103,7 +102,7 @@ partial class WXCanvasCollectionControlUI : WXCanvasControlUI
                 x.CanvasBoundsProperty.ValueChanged += ev;
             }
         }
-        OnItemsAdded(Abstracted.Children.AsUpdate().AsEnumerable());
+        OnItemsAdded(Core.Children.AsUpdate().AsEnumerable());
         base.OnApplyTemplate();
     }
 }

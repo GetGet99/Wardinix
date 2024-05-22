@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using Wardininx.API;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
@@ -43,14 +44,14 @@ namespace Wardininx
         /// <param name="e">Details about the launch request and process.</param>
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
-            MainEditor rootFrame = Window.Current.Content as MainEditor;
+            MainPage rootFrame = Window.Current.Content as MainPage;
 
             // Do not repeat app initialization when the Window already has content,
             // just ensure that the window is active
             if (rootFrame == null)
             {
                 // Create a Frame to act as the navigation context and navigate to the first page
-                rootFrame = new MainEditor();
+                rootFrame = new MainPage();
 
                 //rootFrame.NavigationFailed += OnNavigationFailed;
 

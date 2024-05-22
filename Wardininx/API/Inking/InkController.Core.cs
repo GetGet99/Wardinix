@@ -1,22 +1,15 @@
 using Get.Data.Collections;
-using Get.Data.Collections.Implementation;
-using System.Collections;
-using System.Numerics;
 using Wardininx.Core.Inking;
 using Wardininx.UndoRedos;
-using Windows.Foundation;
 using Windows.UI.Composition;
 using Windows.UI.Input.Inking;
-using Windows.UI.Input.Inking.Core;
 
 namespace Wardininx.API.Inking;
-public partial class InkController : IEditingSession<InkControllerCore>
+partial struct InkController : IEditingSession<InkControllerCore>
 {
-    Document OwnerEditingDocument { get; }
     UndoManager UndoManager => OwnerEditingDocument.UndoManager;
     InkPresenter InkPresenter => Core.InkPresenter;
     InkControllerCore IEditingSession<InkControllerCore>.Core => Core;
-    readonly InkControllerCore Core;
 
     private void EditingViewChanged()
     {
@@ -73,7 +66,7 @@ public partial class InkController : IEditingSession<InkControllerCore>
             static x =>
             {
                 var (@this, strokes) = x;
-                @this.StrokesSelectedItems.Clear();
+                @this.StrokesSelectedItems.ClearSelection();
                 foreach (var ink in strokes)
                 {
                     ink.InkStroke.Selected = true;
@@ -83,7 +76,7 @@ public partial class InkController : IEditingSession<InkControllerCore>
             }, RedoParam: static x =>
             {
                 var (@this, strokes) = x;
-                @this.StrokesSelectedItems.Clear();
+                @this.StrokesSelectedItems.ClearSelection();
                 @this.InkPresenter.StrokeContainer.AddStrokes((from ink in strokes select ink.CreateNew()).ToArray());
             }, CleanupParam: (x, wasActionDone) =>
             {
@@ -101,12 +94,12 @@ public partial class InkController : IEditingSession<InkControllerCore>
             static x =>
             {
                 var (@this, strokes) = x;
-                @this.StrokesSelectedItems.Clear();
+                @this.StrokesSelectedItems.ClearSelection();
                 @this.InkPresenter.StrokeContainer.AddStrokes((from ink in strokes select ink.CreateNew()).ToArray());
             }, RedoParam: static x =>
             {
                 var (@this, strokes) = x;
-                @this.StrokesSelectedItems.Clear();
+                @this.StrokesSelectedItems.ClearSelection();
                 foreach (var ink in strokes)
                 {
                     ink.InkStroke.Selected = true;

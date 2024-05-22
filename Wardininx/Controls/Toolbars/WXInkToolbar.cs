@@ -15,6 +15,7 @@ using Get.Data.Collections;
 using Windows.UI.ViewManagement;
 using Get.Data.Collections.Update;
 using Get.Data.Bindings.Linq;
+using Wardininx.API.Inking;
 namespace Wardininx.Controls.Toolbars;
 
 class WXInkToolbar : AbstractedUI
@@ -51,8 +52,7 @@ class WXInkToolbar : AbstractedUI
     }
     void UpdateDrawingAttribute()
     {
-        var inkController = InkController;
-        if (inkController is null) return;
+        if (InkController is not { } inkController) return;
 
         InkDrawingAttributes attr;
         switch (EditingMode)
