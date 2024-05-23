@@ -201,7 +201,7 @@
     <None Include="Wardininx_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Get.Data" Version="1.0.5" />
+    <PackageReference Include="Get.Data" Version="1.0.6" />
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
